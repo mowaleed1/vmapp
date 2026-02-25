@@ -7,24 +7,30 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Loader2, Eye, EyeOff, AlertCircle } from 'lucide-react'
+import { Card, CardContent, CardFooter } from '@/components/ui/card'
+import { Loader2, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react'
 
-export default function LoginPage() {
+export default function SignupPage() {
     const router = useRouter()
+    const [fullName, setFullName] = useState('')
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [showPassword, setShowPassword] = useState(false)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [success, setSuccess] = useState(false)
 
-    async function handleLogin(e: React.FormEvent) {
+    async function handleSignup(e: React.FormEvent) {
         e.preventDefault()
         setLoading(true)
         setError(null)
 
         const supabase = createClient()
-        const { error } = await supabase.auth.signInWithPassword({ email, password })
+        const { error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: { data: { full_name: fullName } }
+        })
 
         if (error) {
             setError(error.message)
@@ -32,8 +38,25 @@ export default function LoginPage() {
             return
         }
 
-        router.push('/dashboard/agent')
-        router.refresh()
+        setSuccess(true)
+        setLoading(false)
+    }
+
+    if (success) {
+        return (
+            <div className="w-full max-w-md text-center space-y-4">
+                <div className="flex justify-center">
+                    <CheckCircle className="h-16 w-16 text-[#3FD534]" />
+                </div>
+                <h1 className="text-2xl font-bold">Check your email</h1>
+                <p className="text-muted-foreground">
+                    We sent a confirmation link to <span className="font-medium text-foreground">{email}</span>. Click the link to activate your account.
+                </p>
+                <Link href="/login" className="text-[#056BFC] hover:underline text-sm font-medium">
+                    Back to sign in
+                </Link>
+            </div>
+        )
     }
 
     return (
@@ -49,19 +72,32 @@ export default function LoginPage() {
             </div>
 
             <div className="text-center">
-                <h1 className="text-3xl font-bold">Welcome back</h1>
-                <p className="text-muted-foreground mt-2">Sign in to your VMApp account</p>
+                <h1 className="text-3xl font-bold">Create an account</h1>
+                <p className="text-muted-foreground mt-2">Get started with VMApp today</p>
             </div>
 
             <Card className="border shadow-sm">
                 <CardContent className="pt-6">
-                    <form onSubmit={handleLogin} className="space-y-4">
+                    <form onSubmit={handleSignup} className="space-y-4">
                         {error && (
                             <div className="flex items-center gap-2 p-3 rounded-md bg-destructive/10 text-destructive text-sm border border-destructive/20">
                                 <AlertCircle className="h-4 w-4 shrink-0" />
                                 <span>{error}</span>
                             </div>
                         )}
+
+                        <div className="space-y-2">
+                            <Label htmlFor="full_name">Full name</Label>
+                            <Input
+                                id="full_name"
+                                type="text"
+                                placeholder="John Smith"
+                                value={fullName}
+                                onChange={(e) => setFullName(e.target.value)}
+                                required
+                                disabled={loading}
+                            />
+                        </div>
 
                         <div className="space-y-2">
                             <Label htmlFor="email">Email address</Label>
@@ -78,21 +114,17 @@ export default function LoginPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <Label htmlFor="password">Password</Label>
-                                <Link href="/forgot-password" className="text-xs text-[#056BFC] hover:underline">
-                                    Forgot password?
-                                </Link>
-                            </div>
+                            <Label htmlFor="password">Password</Label>
                             <div className="relative">
                                 <Input
                                     id="password"
                                     type={showPassword ? 'text' : 'password'}
-                                    placeholder="••••••••"
+                                    placeholder="Min. 8 characters"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     required
-                                    autoComplete="current-password"
+                                    minLength={8}
+                                    autoComplete="new-password"
                                     disabled={loading}
                                     className="pr-10"
                                 />
@@ -109,29 +141,36 @@ export default function LoginPage() {
 
                         <Button
                             type="submit"
-                            className="w-full bg-[#056BFC] hover:bg-[#056BFC]/90 text-white font-semibold"
+                            className="w-full bg-[#3FD534] hover:bg-[#3FD534]/90 text-white font-semibold"
                             disabled={loading}
                         >
                             {loading ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Signing in...
+                                    Creating account...
                                 </>
                             ) : (
-                                'Sign in'
+                                'Create account'
                             )}
                         </Button>
                     </form>
                 </CardContent>
                 <CardFooter className="justify-center border-t pt-4">
                     <p className="text-sm text-muted-foreground">
-                        Don&apos;t have an account?{' '}
-                        <Link href="/signup" className="text-[#056BFC] font-medium hover:underline">
-                            Sign up
+                        Already have an account?{' '}
+                        <Link href="/login" className="text-[#056BFC] font-medium hover:underline">
+                            Sign in
                         </Link>
                     </p>
                 </CardFooter>
             </Card>
+
+            <p className="text-center text-xs text-muted-foreground">
+                By signing up, you agree to our{' '}
+                <span className="text-[#056BFC] cursor-pointer hover:underline">Terms of Service</span>{' '}
+                and{' '}
+                <span className="text-[#056BFC] cursor-pointer hover:underline">Privacy Policy</span>
+            </p>
         </div>
     )
 }
