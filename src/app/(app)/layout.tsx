@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Sidebar } from '@/components/Sidebar'
-import { TopNav } from '@/components/TopNav'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { AppShellClient } from '@/components/AppShellClient'
 
 export default async function AppLayout({
     children,
@@ -16,7 +16,6 @@ export default async function AppLayout({
         redirect('/login')
     }
 
-    // Fetch user profile from our users table
     const { data: profile } = await supabase
         .from('users')
         .select('full_name, email')
@@ -27,15 +26,12 @@ export default async function AppLayout({
         <TooltipProvider>
             <div className="flex h-screen overflow-hidden bg-background">
                 <Sidebar />
-                <div className="flex flex-col flex-1 overflow-hidden">
-                    <TopNav
-                        userEmail={profile?.email ?? user.email}
-                        userFullName={profile?.full_name ?? undefined}
-                    />
-                    <main className="flex-1 overflow-y-auto p-6">
-                        {children}
-                    </main>
-                </div>
+                <AppShellClient
+                    userEmail={profile?.email ?? user.email}
+                    userFullName={profile?.full_name ?? undefined}
+                >
+                    {children}
+                </AppShellClient>
             </div>
         </TooltipProvider>
     )

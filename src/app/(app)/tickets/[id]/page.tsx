@@ -1,12 +1,14 @@
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { Button } from '@/components/ui/button'
 import { TicketCommentThread } from '@/components/TicketCommentThread'
 import { TicketStatusSelect } from '@/components/TicketStatusSelect'
+import { TicketAssignSelect } from '@/components/TicketAssignSelect'
+import { SlaIndicator } from '@/components/SlaIndicator'
+import { TicketActivityLog } from '@/components/TicketActivityLog'
 import {
     ArrowLeft, User, Calendar, Tag, AlertCircle,
-    Clock, CheckCircle2, XCircle, Sparkles, Mic
+    Clock, CheckCircle2, XCircle, Sparkles, Mic, Timer
 } from 'lucide-react'
 
 function timeAgo(dateStr: string) {
@@ -37,10 +39,10 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
     const { data: ticket } = await supabase
         .from('tickets')
         .select(`
-      *,
-      requester:users!tickets_requester_id_fkey(id, full_name, email),
-      assigned:users!tickets_assigned_to_fkey(id, full_name, email)
-    `)
+    *,
+    requester: users!tickets_requester_id_fkey(id, full_name, email),
+        assigned: users!tickets_assigned_to_fkey(id, full_name, email)
+            `)
         .eq('id', id)
         .single()
 
@@ -48,125 +50,164 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
 
     const { data: comments } = await supabase
         .from('ticket_comments')
-        .select(`*, author:users!ticket_comments_author_id_fkey(id, full_name, email)`)
+        .select(`*, author: users!ticket_comments_author_id_fkey(id, full_name, email)`)
         .eq('ticket_id', id)
         .order('created_at', { ascending: true })
 
     const pCfg = PRIORITY_CONFIG[ticket.priority as keyof typeof PRIORITY_CONFIG] ?? PRIORITY_CONFIG.medium
 
     return (
-        <div className="max-w-5xl mx-auto space-y-6">
-            {/* Back + title */}
-            <div>
-                <Link href="/tickets" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors">
+        <div className="max-w-6xl mx-auto space-y-8 pb-12">
+            {/* Header Area */}
+            <div className="space-y-4">
+                <Link href="/tickets" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
                     <ArrowLeft className="h-4 w-4" /> Back to tickets
                 </Link>
-                <div className="flex items-start justify-between gap-4">
+
+                <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
                     <div className="flex-1 min-w-0">
-                        <h2 className="text-2xl font-bold">{ticket.title}</h2>
-                        <p className="text-sm font-mono text-muted-foreground mt-1">
-                            TKT-{ticket.id.slice(0, 8).toUpperCase()}
-                        </p>
+                        <h2 className="text-3xl font-bold tracking-tight text-foreground">{ticket.title}</h2>
+                        <div className="flex items-center gap-3 mt-2">
+                            <span className="text-sm font-mono text-muted-foreground font-medium bg-muted px-2 py-0.5 rounded-md">
+                                {ticket.ticket_number ?? `VM-${ticket.id.slice(0, 6).toUpperCase()}`}
+                            </span>
+                            <span className="text-sm text-muted-foreground">
+                                Opened {timeAgo(ticket.created_at)} by <span className="font-medium text-foreground">{(ticket.requester as any)?.full_name ?? (ticket.requester as any)?.email ?? 'Unknown'}</span>
+                            </span>
+                        </div>
                     </div>
-                    <TicketStatusSelect ticketId={ticket.id} currentStatus={ticket.status} />
-                </div>
-            </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
-                {/* Main content */}
-                <div className="space-y-5">
-                    {/* AI Summary */}
-                    {ticket.summary && (
-                        <div className="p-4 rounded-xl bg-[#056BFC]/5 border border-[#056BFC]/20">
-                            <div className="flex items-center gap-2 mb-2">
-                                <Sparkles className="h-4 w-4 text-[#056BFC]" />
-                                <span className="text-sm font-semibold text-[#056BFC]">AI Summary</span>
-                            </div>
-                            <p className="text-sm text-foreground/80 leading-relaxed">{ticket.summary}</p>
+                    {/* Primary Actions (Enterprise Header) */}
+                    <div className="flex items-center gap-3 shrink-0 bg-card p-2 rounded-xl border shadow-sm">
+                        <div className="flex items-center gap-2 pl-2 border-r pr-3">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            <TicketAssignSelect
+                                ticketId={ticket.id}
+                                currentAssignedId={(ticket.assigned as any)?.id ?? null}
+                                currentAssignedName={(ticket.assigned as any)?.full_name ?? (ticket.assigned as any)?.email ?? null}
+                            />
                         </div>
-                    )}
-
-                    {/* Description */}
-                    {ticket.description && (
-                        <div className="rounded-xl border bg-card p-5">
-                            <h3 className="font-semibold mb-3">Description</h3>
-                            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                                {ticket.description}
-                            </p>
-                        </div>
-                    )}
-
-                    {/* Transcript */}
-                    {ticket.transcript && (
-                        <div className="rounded-xl border bg-card p-5">
-                            <div className="flex items-center gap-2 mb-3">
-                                <Mic className="h-4 w-4 text-muted-foreground" />
-                                <h3 className="font-semibold">Audio Transcript</h3>
-                            </div>
-                            <div className="rounded-lg bg-muted/50 p-4 text-sm text-muted-foreground leading-relaxed font-mono whitespace-pre-wrap max-h-64 overflow-y-auto">
-                                {ticket.transcript}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Comment thread */}
-                    <TicketCommentThread
-                        ticketId={ticket.id}
-                        currentUserId={user.id}
-                        initialComments={comments ?? []}
-                    />
-                </div>
-
-                {/* Sidebar */}
-                <div className="space-y-4">
-                    <div className="rounded-xl border bg-card p-4 space-y-4">
-                        <h3 className="font-semibold text-sm">Details</h3>
-
-                        <DetailRow label="Status" icon={<StatusIcon status={ticket.status} />}>
-                            <span className="text-sm font-medium capitalize">{ticket.status.replace('_', ' ')}</span>
-                        </DetailRow>
-
-                        <DetailRow label="Priority" icon={<AlertCircle className="h-4 w-4 text-muted-foreground" />}>
-                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${pCfg.class}`}>
-                                {pCfg.label}
-                            </span>
-                        </DetailRow>
-
-                        <DetailRow label="Category" icon={<Tag className="h-4 w-4 text-muted-foreground" />}>
-                            <span className="text-sm capitalize">{ticket.category?.replace('_', ' ') ?? '—'}</span>
-                        </DetailRow>
-
-                        <DetailRow label="Requester" icon={<User className="h-4 w-4 text-muted-foreground" />}>
-                            <span className="text-sm truncate">
-                                {(ticket.requester as any)?.full_name ?? (ticket.requester as any)?.email ?? '—'}
-                            </span>
-                        </DetailRow>
-
-                        <DetailRow label="Assigned to" icon={<User className="h-4 w-4 text-muted-foreground" />}>
-                            <span className="text-sm truncate">
-                                {(ticket.assigned as any)?.full_name ?? (ticket.assigned as any)?.email ?? 'Unassigned'}
-                            </span>
-                        </DetailRow>
-
-                        <DetailRow label="Created" icon={<Calendar className="h-4 w-4 text-muted-foreground" />}>
-                            <span className="text-sm">{timeAgo(ticket.created_at)}</span>
-                        </DetailRow>
-
-                        <DetailRow label="Updated" icon={<Calendar className="h-4 w-4 text-muted-foreground" />}>
-                            <span className="text-sm">{timeAgo(ticket.updated_at)}</span>
-                        </DetailRow>
+                        <TicketStatusSelect ticketId={ticket.id} currentStatus={ticket.status} />
                     </div>
                 </div>
+            </div >
+
+            <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-8 items-start">
+                {/* Main content (Left Column) */}
+                <div className="space-y-8 min-w-0">
+
+                    {/* Standard Content Blocks */}
+                    <div className="space-y-6">
+                        {/* AI Summary */}
+                        {ticket.summary && (
+                            <div className="p-5 rounded-xl bg-gradient-to-r from-[#056BFC]/10 to-[#056BFC]/5 border border-[#056BFC]/20 shadow-sm relative overflow-hidden">
+                                <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                                    <Sparkles className="h-24 w-24 text-[#056BFC]" />
+                                </div>
+                                <div className="flex items-center gap-2 mb-3 relative z-10">
+                                    <div className="p-1.5 rounded-md bg-[#056BFC]/20">
+                                        <Sparkles className="h-4 w-4 text-[#056BFC]" />
+                                    </div>
+                                    <span className="text-sm font-bold tracking-wide uppercase text-[#056BFC]">AI Summary</span>
+                                </div>
+                                <p className="text-sm text-foreground/90 leading-relaxed relative z-10">{ticket.summary}</p>
+                            </div>
+                        )}
+
+                        {/* Description */}
+                        {ticket.description && (
+                            <div className="rounded-xl border bg-card p-6 shadow-sm">
+                                <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                                    Description
+                                </h3>
+                                <div className="prose prose-sm max-w-none text-muted-foreground">
+                                    <p className="whitespace-pre-wrap leading-relaxed">
+                                        {ticket.description}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Transcript */}
+                        {ticket.transcript && (
+                            <div className="rounded-xl border bg-card p-6 shadow-sm">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <div className="p-1.5 rounded-md bg-muted">
+                                        <Mic className="h-4 w-4 text-muted-foreground" />
+                                    </div>
+                                    <h3 className="font-semibold text-lg">Audio Transcript</h3>
+                                </div>
+                                <div className="rounded-lg bg-muted/30 border p-4 text-sm text-muted-foreground/80 leading-relaxed font-mono whitespace-pre-wrap max-h-64 overflow-y-auto">
+                                    {ticket.transcript}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Massive Centralized Comment Thread Canvas */}
+                    <div className="pt-2">
+                        <h3 className="font-semibold text-lg mb-4">Activity & Comments</h3>
+                        <TicketCommentThread
+                            ticketId={ticket.id}
+                            currentUserId={user.id}
+                            initialComments={comments ?? []}
+                            ticketTitle={ticket.title}
+                            ticketDescription={ticket.description}
+                            ticketSummary={ticket.summary}
+                            transcript={ticket.transcript}
+                        />
+                    </div>
+                </div>
+
+                {/* Right Column: Metadata Sidebar */}
+                <div className="space-y-6 sticky top-6">
+                    {/* Details Card */}
+                    <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+                        <div className="px-5 py-4 border-b bg-muted/20">
+                            <h3 className="font-semibold text-sm">Ticket Details</h3>
+                        </div>
+                        <div className="p-5 space-y-5">
+                            <DetailRow label="Priority" icon={<AlertCircle className="h-4 w-4 text-muted-foreground" />}>
+                                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${pCfg.class}`}>
+                                    {pCfg.label}
+                                </span>
+                            </DetailRow>
+
+                            <DetailRow label="SLA Standard" icon={<Timer className="h-4 w-4 text-muted-foreground" />}>
+                                <SlaIndicator
+                                    breachAt={ticket.sla_breach_at ?? null}
+                                    priority={ticket.priority}
+                                    status={ticket.status}
+                                />
+                            </DetailRow>
+
+                            <DetailRow label="Category" icon={<Tag className="h-4 w-4 text-muted-foreground" />}>
+                                <span className="text-sm font-medium capitalize bg-muted px-2 py-0.5 rounded-md">
+                                    {ticket.category?.replace('_', ' ') ?? '—'}
+                                </span>
+                            </DetailRow>
+
+                            <div className="pt-4 mt-4 border-t space-y-4">
+                                <DetailRow label="Updated" icon={<Calendar className="h-4 w-4 text-muted-foreground" />}>
+                                    <span className="text-sm">{timeAgo(ticket.updated_at)}</span>
+                                </DetailRow>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Vertical Timeline Log */}
+                    <TicketActivityLog ticketId={ticket.id} />
+                </div>
             </div>
-        </div>
+        </div >
     )
 }
 
 function StatusIcon({ status }: { status: string }) {
     const map: Record<string, { icon: any; class: string }> = {
         open: { icon: AlertCircle, class: 'text-[#056BFC]' },
-        in_progress: { icon: Clock, class: 'text-[#FABD00]' },
-        resolved: { icon: CheckCircle2, class: 'text-[#3FD534]' },
+        in_progress: { icon: Clock, class: 'text-amber-500' },
+        resolved: { icon: CheckCircle2, class: 'text-emerald-500' },
         closed: { icon: XCircle, class: 'text-muted-foreground' },
     }
     const cfg = map[status] ?? map.open
@@ -178,10 +219,10 @@ function DetailRow({ label, icon, children }: {
     label: string; icon: React.ReactNode; children: React.ReactNode
 }) {
     return (
-        <div className="flex items-start gap-2.5">
-            <div className="mt-0.5 shrink-0">{icon}</div>
+        <div className="flex items-start gap-3">
+            <div className="mt-0.5 shrink-0 bg-muted/50 p-1.5 rounded-md">{icon}</div>
             <div className="flex-1 min-w-0">
-                <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
+                <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wider">{label}</p>
                 {children}
             </div>
         </div>

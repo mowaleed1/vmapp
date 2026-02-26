@@ -2,13 +2,13 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardFooter } from '@/components/ui/card'
-import { Loader2, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react'
+import { Loader2, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react'
 
 export default function SignupPage() {
     const router = useRouter()
@@ -25,151 +25,155 @@ export default function SignupPage() {
         setLoading(true)
         setError(null)
 
-        const supabase = createClient()
-        const { error } = await supabase.auth.signUp({
-            email,
-            password,
-            options: { data: { full_name: fullName } }
-        })
+        try {
+            const supabase = createClient()
+            const { error: authError } = await supabase.auth.signUp({
+                email,
+                password,
+                options: { data: { full_name: fullName } }
+            })
 
-        if (error) {
-            setError(error.message)
+            if (authError) {
+                setError(authError.message)
+                setLoading(false)
+                return
+            }
+
+            setSuccess(true)
             setLoading(false)
-            return
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : String(err)
+            setError(`Connection error: ${msg}`)
+            setLoading(false)
         }
-
-        setSuccess(true)
-        setLoading(false)
     }
 
+    // Success state — white card on blue background
     if (success) {
         return (
-            <div className="w-full max-w-md text-center space-y-4">
-                <div className="flex justify-center">
-                    <CheckCircle className="h-16 w-16 text-[#3FD534]" />
+            <div className="w-full max-w-md">
+                <div className="bg-white rounded-2xl shadow-2xl p-10 text-center space-y-4">
+                    <CheckCircle2 className="h-14 w-14 text-[#3FD534] mx-auto" />
+                    <h1 className="text-2xl font-bold text-[#1a1a1a]">Check your email</h1>
+                    <p className="text-[#303030]/65 text-sm leading-relaxed">
+                        We sent a confirmation link to{' '}
+                        <span className="font-semibold text-[#1a1a1a]">{email}</span>.{' '}
+                        Click the link to activate your Value Momentum account.
+                    </p>
+                    <Link
+                        href="/login"
+                        className="inline-block mt-2 text-sm text-[#056BFC] font-semibold hover:underline"
+                    >
+                        ← Back to sign in
+                    </Link>
                 </div>
-                <h1 className="text-2xl font-bold">Check your email</h1>
-                <p className="text-muted-foreground">
-                    We sent a confirmation link to <span className="font-medium text-foreground">{email}</span>. Click the link to activate your account.
+                <p className="text-center text-xs text-white/50 mt-6">
+                    © {new Date().getFullYear()} ValueMomentum, Inc. All rights reserved.
                 </p>
-                <Link href="/login" className="text-[#056BFC] hover:underline text-sm font-medium">
-                    Back to sign in
-                </Link>
             </div>
         )
     }
 
     return (
-        <div className="w-full max-w-md space-y-6">
-            {/* Mobile logo */}
-            <div className="flex justify-center lg:hidden mb-8">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" className="w-16 h-16">
-                    <rect width="100" height="100" rx="20" fill="#303030" />
-                    <path d="M20 30L38 72L56 30" stroke="#056BFC" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M52 72L70 30L88 72" stroke="#3FD534" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
-                    <circle cx="50" cy="51" r="5" fill="#FABD00" />
-                </svg>
+        <div className="w-full max-w-md">
+            {/* Mobile-only logo */}
+            <div className="flex justify-center mb-8 lg:hidden">
+                <Image src="/vm-logo.png" alt="ValueMomentum" width={180} height={50} className="object-contain brightness-0 invert" />
             </div>
 
-            <div className="text-center">
-                <h1 className="text-3xl font-bold">Create an account</h1>
-                <p className="text-muted-foreground mt-2">Get started with VMApp today</p>
-            </div>
+            {/* White card */}
+            <div className="bg-white rounded-2xl shadow-2xl p-8 space-y-6 border border-white/20">
+                <div>
+                    <h1 className="text-2xl font-bold text-[#1a1a1a]">Create account</h1>
+                    <p className="text-muted-foreground text-sm mt-1">Join the Value Momentum platform</p>
+                </div>
 
-            <Card className="border shadow-sm">
-                <CardContent className="pt-6">
-                    <form onSubmit={handleSignup} className="space-y-4">
-                        {error && (
-                            <div className="flex items-center gap-2 p-3 rounded-md bg-destructive/10 text-destructive text-sm border border-destructive/20">
-                                <AlertCircle className="h-4 w-4 shrink-0" />
-                                <span>{error}</span>
-                            </div>
-                        )}
-
-                        <div className="space-y-2">
-                            <Label htmlFor="full_name">Full name</Label>
-                            <Input
-                                id="full_name"
-                                type="text"
-                                placeholder="John Smith"
-                                value={fullName}
-                                onChange={(e) => setFullName(e.target.value)}
-                                required
-                                disabled={loading}
-                            />
+                <form onSubmit={handleSignup} className="space-y-4">
+                    {error && (
+                        <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 text-red-600 text-sm border border-red-100">
+                            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                            <span>{error}</span>
                         </div>
+                    )}
 
-                        <div className="space-y-2">
-                            <Label htmlFor="email">Email address</Label>
-                            <Input
-                                id="email"
-                                type="email"
-                                placeholder="you@company.com"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                required
-                                autoComplete="email"
-                                disabled={loading}
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="password">Password</Label>
-                            <div className="relative">
-                                <Input
-                                    id="password"
-                                    type={showPassword ? 'text' : 'password'}
-                                    placeholder="Min. 8 characters"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    required
-                                    minLength={8}
-                                    autoComplete="new-password"
-                                    disabled={loading}
-                                    className="pr-10"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                                    tabIndex={-1}
-                                >
-                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                </button>
-                            </div>
-                        </div>
-
-                        <Button
-                            type="submit"
-                            className="w-full bg-[#3FD534] hover:bg-[#3FD534]/90 text-white font-semibold"
+                    <div className="space-y-1.5">
+                        <Label htmlFor="full_name" className="text-[#303030] font-medium">Full name</Label>
+                        <Input
+                            id="full_name"
+                            type="text"
+                            placeholder="Jane Smith"
+                            value={fullName}
+                            onChange={(e) => setFullName(e.target.value)}
+                            required
                             disabled={loading}
-                        >
-                            {loading ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Creating account...
-                                </>
-                            ) : (
-                                'Create account'
-                            )}
-                        </Button>
-                    </form>
-                </CardContent>
-                <CardFooter className="justify-center border-t pt-4">
+                            className="h-11 border-gray-200 focus:border-[#056BFC] focus:ring-[#056BFC]/20"
+                        />
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <Label htmlFor="email" className="text-[#303030] font-medium">Email address</Label>
+                        <Input
+                            id="email"
+                            type="email"
+                            placeholder="you@valuemomentum.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                            autoComplete="email"
+                            disabled={loading}
+                            className="h-11 border-gray-200 focus:border-[#056BFC] focus:ring-[#056BFC]/20"
+                        />
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <Label htmlFor="password" className="text-[#303030] font-medium">Password</Label>
+                        <div className="relative">
+                            <Input
+                                id="password"
+                                type={showPassword ? 'text' : 'password'}
+                                placeholder="Min. 8 characters"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                                minLength={8}
+                                autoComplete="new-password"
+                                disabled={loading}
+                                className="h-11 pr-10 border-gray-200 focus:border-[#056BFC] focus:ring-[#056BFC]/20"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                tabIndex={-1}
+                            >
+                                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                        </div>
+                    </div>
+
+                    <Button
+                        type="submit"
+                        className="w-full h-11 bg-[#056BFC] hover:bg-[#0455CC] text-white font-semibold rounded-lg shadow-sm transition-colors"
+                        disabled={loading}
+                    >
+                        {loading
+                            ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating account…</>
+                            : 'Create account'}
+                    </Button>
+                </form>
+
+                <div className="pt-2 border-t border-gray-100 text-center">
                     <p className="text-sm text-muted-foreground">
                         Already have an account?{' '}
-                        <Link href="/login" className="text-[#056BFC] font-medium hover:underline">
+                        <Link href="/login" className="text-[#056BFC] font-semibold hover:underline">
                             Sign in
                         </Link>
                     </p>
-                </CardFooter>
-            </Card>
+                </div>
+            </div>
 
-            <p className="text-center text-xs text-muted-foreground">
-                By signing up, you agree to our{' '}
-                <span className="text-[#056BFC] cursor-pointer hover:underline">Terms of Service</span>{' '}
-                and{' '}
-                <span className="text-[#056BFC] cursor-pointer hover:underline">Privacy Policy</span>
+            <p className="text-center text-xs text-white/50 mt-6">
+                © {new Date().getFullYear()} ValueMomentum, Inc. All rights reserved.
             </p>
         </div>
     )

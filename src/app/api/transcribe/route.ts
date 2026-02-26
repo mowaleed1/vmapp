@@ -1,16 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
-import OpenAI from 'openai'
-import { createClient } from '@supabase/supabase-js'
+import { NextResponse } from 'next/server'
+import OpenAI, { toFile } from 'openai'
+import { createClient } from '@/lib/supabase/server'
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+const openai = new OpenAI()
 
-// Server-side Supabase with service role to bypass RLS in API routes
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
-
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
     try {
         const { uploadFileId, storagePath } = await req.json()
 
@@ -18,106 +12,96 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Missing uploadFileId or storagePath' }, { status: 400 })
         }
 
-        // Mark as transcribing
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+
+        if (!user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+
+        // 1. Mark as transcribing
         await supabase.from('upload_files').update({ status: 'transcribing' }).eq('id', uploadFileId)
 
-        // Download file from Supabase Storage
-        const { data: blob, error: downloadError } = await supabase.storage
+        // 2. Download file from Supabase Storage
+        const { data: fileData, error: downloadError } = await supabase.storage
             .from('audio-uploads')
             .download(storagePath)
 
-        if (downloadError || !blob) {
+        if (downloadError || !fileData) {
             await supabase.from('upload_files').update({
                 status: 'failed',
-                error_message: downloadError?.message ?? 'Download failed'
+                error_message: downloadError?.message ?? 'Download failed.'
             }).eq('id', uploadFileId)
-            return NextResponse.json({ error: 'Download failed' }, { status: 500 })
+            return NextResponse.json({ error: 'Download failed.' }, { status: 500 })
         }
 
-        // Convert to File for OpenAI
+        // 3. Convert to OpenAI File
+        const buffer = await fileData.arrayBuffer()
         const fileName = storagePath.split('/').pop() ?? 'audio.mp3'
-        const audioFile = new File([blob], fileName, { type: blob.type || 'audio/mpeg' })
+        const audioFile = await toFile(Buffer.from(buffer), fileName, { type: fileData.type || 'audio/mpeg' })
 
-        // Transcribe with Whisper
+        // 4. Transcribe with Whisper
         const transcription = await openai.audio.transcriptions.create({
-            file: audioFile,
+            file: audioFile as any,
             model: 'whisper-1',
             language: 'en',
         })
-
         const transcript = transcription.text
+
+        // 5. Mark as summarizing
         await supabase.from('upload_files').update({ transcript, status: 'summarizing' }).eq('id', uploadFileId)
 
-        // GPT: extract ticket fields
+        // 6. GPT: extract ticket structured data
         const completion = await openai.chat.completions.create({
             model: 'gpt-4o-mini',
             messages: [
                 {
                     role: 'system',
-                    content: `You are a customer support ticket triage assistant. 
+                    content: `You are a customer support ticket triage assistant for ValueMomentum, an insurance technology company.
 Given a voice recording transcript, extract a structured support ticket.
-Return ONLY valid JSON with this shape:
+If the transcript mentions a specific prior ticket number (e.g., "VM-1234", "ticket 5678", "issue one two three"), extract it exactly as it sounded in 'linked_ticket_number'.
+Return ONLY valid JSON with this exact shape:
 {
   "title": "Short, clear ticket title (max 80 chars)",
-  "description": "Detailed description of the issue",
+  "description": "Detailed description of the issue based on the transcript",
   "priority": "low" | "medium" | "high" | "critical",
-  "category": "billing" | "technical" | "account" | "feature_request" | "complaint" | "general",
-  "summary": "1–2 sentence summary of the core issue",
-  "sentiment": "positive" | "neutral" | "negative" | "frustrated"
-}`,
+  "category": "billing" | "technical" | "account" | "feature_request" | "general",
+  "summary": "1-2 sentence summary of the core issue",
+  "linked_ticket_number": "Any mentioned ticket reference string or null"
+}`
                 },
                 {
                     role: 'user',
-                    content: `Transcript:\n"${transcript}"`,
-                },
+                    content: `Transcript:\n"${transcript}"`
+                }
             ],
-            response_format: { type: 'json_object' },
+            response_format: { type: 'json_object' }
         })
 
         const raw = completion.choices[0].message.content ?? '{}'
         const ticketFields = JSON.parse(raw)
 
-        // Get the upload file's user_id
-        const { data: uploadFile } = await supabase
-            .from('upload_files')
-            .select('user_id, batch_id')
-            .eq('id', uploadFileId)
-            .single()
-
-        // Create ticket
-        const { data: ticket, error: ticketError } = await supabase
-            .from('tickets')
-            .insert({
-                title: ticketFields.title ?? 'Untitled Ticket',
-                description: ticketFields.description ?? '',
-                transcript,
-                summary: ticketFields.summary ?? '',
-                priority: ticketFields.priority ?? 'medium',
-                category: ticketFields.category ?? 'general',
-                status: 'open',
-                requester_id: uploadFile?.user_id,
-            })
-            .select()
-            .single()
-
-        if (ticketError || !ticket) {
-            await supabase.from('upload_files').update({
-                status: 'failed',
-                error_message: ticketError?.message ?? 'Ticket creation failed'
-            }).eq('id', uploadFileId)
-            return NextResponse.json({ error: 'Failed to create ticket' }, { status: 500 })
-        }
-
-        // Mark upload file as completed with ticket reference
+        // 7. Mark as "pending_review" — do NOT auto-create ticket
         await supabase.from('upload_files').update({
-            status: 'completed',
-            ticket_id: ticket.id,
+            status: 'pending_review',
+            transcript,
         }).eq('id', uploadFileId)
 
-        return NextResponse.json({ ticketId: ticket.id, ticket })
+        // Return analysis for user review
+        return NextResponse.json({
+            uploadFileId,
+            transcript,
+            title: ticketFields.title ?? 'Untitled Ticket',
+            description: ticketFields.description ?? transcript,
+            priority: ticketFields.priority ?? 'medium',
+            category: ticketFields.category ?? 'general',
+            summary: ticketFields.summary ?? '',
+            linked_ticket_number: ticketFields.linked_ticket_number ?? null,
+        })
+
     } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Unknown error'
-        console.error('[transcribe API]', message)
+        console.error('[transcribe API error]', message)
         return NextResponse.json({ error: message }, { status: 500 })
     }
 }

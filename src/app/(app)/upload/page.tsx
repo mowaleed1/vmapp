@@ -1,10 +1,10 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { UploadZone } from '@/components/UploadZone'
-import { UploadCloud, Mic } from 'lucide-react'
+import { UploadCloud, FileAudio, Zap, FileCheck } from 'lucide-react'
 
 export const metadata = {
-    title: 'Upload Audio — VMApp',
+    title: 'Upload Audio — ValueMomentum',
 }
 
 export default async function UploadPage() {
@@ -12,28 +12,23 @@ export default async function UploadPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) redirect('/login')
 
-    // Generate a batch ID for this upload session
     const batchId = crypto.randomUUID()
 
     return (
-        <div className="max-w-3xl mx-auto space-y-8">
+        <div className="max-w-3xl mx-auto space-y-6">
+            {/* Page header */}
             <div>
-                <div className="flex items-center gap-3 mb-2">
-                    <div className="p-2 rounded-lg bg-[#056BFC]/10">
-                        <UploadCloud className="h-6 w-6 text-[#056BFC]" />
-                    </div>
-                    <h2 className="text-2xl font-bold">Upload Audio</h2>
-                </div>
-                <p className="text-muted-foreground">
-                    Upload voice recordings or call audio. VMApp will transcribe each file with Whisper and automatically create structured support tickets using GPT.
+                <h2 className="text-2xl font-bold">Upload Audio</h2>
+                <p className="text-muted-foreground text-sm mt-1">
+                    Upload voice recordings or call audio. Our AI will transcribe and extract ticket details for your review before creating.
                 </p>
             </div>
 
-            {/* How it works */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <HowItWorksStep n={1} icon="🎙️" title="Upload Audio" desc="Drag & drop MP3, WAV, M4A, or any audio format" />
-                <HowItWorksStep n={2} icon="⚡" title="AI Transcribes" desc="OpenAI Whisper converts speech to text in seconds" />
-                <HowItWorksStep n={3} icon="🎫" title="Ticket Created" desc="GPT extracts title, priority, category & summary" />
+            {/* How it works — no numbers, no emojis */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <ProcessStep icon={FileAudio} title="Upload Recording" desc="Drag & drop or browse MP3, WAV, M4A, or any audio format" />
+                <ProcessStep icon={Zap} title="AI Transcribes & Analyses" desc="Whisper transcribes speech, GPT extracts title, priority & category" />
+                <ProcessStep icon={FileCheck} title="Review & Confirm" desc="Review all extracted details before the ticket is created" />
             </div>
 
             {/* Upload Zone */}
@@ -41,27 +36,27 @@ export default async function UploadPage() {
                 <UploadZone userId={user.id} batchId={batchId} />
             </div>
 
-            {/* Info callout */}
-            <div className="flex gap-3 p-4 rounded-lg bg-[#056BFC]/5 border border-[#056BFC]/20 text-sm text-muted-foreground">
-                <Mic className="h-5 w-5 text-[#056BFC] shrink-0 mt-0.5" />
-                <div>
-                    <p className="font-medium text-foreground mb-1">Voice Recording (Coming Soon)</p>
-                    <p>Record directly from your browser microphone with waveform visualization. Your recording will go through the same AI pipeline as uploaded files.</p>
-                </div>
+            {/* Info note */}
+            <div className="flex gap-3 p-4 rounded-lg bg-muted/30 border text-sm text-muted-foreground">
+                <UploadCloud className="h-4 w-4 text-[#056BFC] shrink-0 mt-0.5" />
+                <p>
+                    Recordings are processed securely via OpenAI Whisper. After analysis you will see a full review panel with the transcription,
+                    AI-suggested title, priority, and category — all editable before the ticket is created.
+                </p>
             </div>
         </div>
     )
 }
 
-function HowItWorksStep({ n, icon, title, desc }: { n: number; icon: string; title: string; desc: string }) {
+function ProcessStep({ icon: Icon, title, desc }: { icon: React.ElementType; title: string; desc: string }) {
     return (
-        <div className="flex gap-3 p-4 rounded-lg border bg-muted/30">
-            <div className="w-8 h-8 rounded-full bg-[#056BFC] text-white text-sm font-bold flex items-center justify-center shrink-0">
-                {n}
+        <div className="flex gap-3 p-4 rounded-lg border bg-card">
+            <div className="p-2 rounded-md bg-[#056BFC]/8 border border-[#056BFC]/15 shrink-0 h-fit">
+                <Icon className="h-4 w-4 text-[#056BFC]" />
             </div>
             <div>
-                <p className="font-semibold text-sm">{icon} {title}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
+                <p className="font-semibold text-sm">{title}</p>
+                <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{desc}</p>
             </div>
         </div>
     )
