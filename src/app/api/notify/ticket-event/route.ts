@@ -4,17 +4,18 @@ import { TicketNotificationEmail } from '@/emails/ticket-notification'
 import { createClient } from '@supabase/supabase-js'
 
 export const maxDuration = 10 // Setup max duration for edge deployment if needed
-
-const resend = new Resend(process.env.RESEND_API_KEY)
-const fromEmail = process.env.RESEND_FROM_EMAIL || 'notifications@valuemomentum.com'
-
-// A background, service-role supabase client just to look up user emails internally without RLS
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+export const dynamic = 'force-dynamic' // Prevent Next.js from prerendering this webhook route
 
 export async function POST(req: Request) {
+    const resend = new Resend(process.env.RESEND_API_KEY)
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'notifications@valuemomentum.com'
+
+    // A background, service-role supabase client just to look up user emails internally without RLS
+    const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+
     try {
         const payload = await req.json()
 
