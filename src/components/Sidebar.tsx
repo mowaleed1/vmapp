@@ -78,10 +78,14 @@ export function Sidebar({ userRole = 'user' }: { userRole?: string }) {
                 collapsed ? 'justify-center px-3' : 'px-5'
             )}>
                 {collapsed ? (
-                    /* Collapsed: show just the VM mark from the logo */
-                    <div className="w-8 h-8 rounded-md bg-[#056BFC] flex items-center justify-center shrink-0">
-                        <span className="text-white text-xs font-bold">VM</span>
-                    </div>
+                    /* Collapsed: show the VM branded M logo */
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" className="w-8 h-8 shrink-0 drop-shadow-sm">
+                        <polygon points="12,54 30,36 30,54" fill="#6ba5f2" />
+                        <polygon points="30,36 50,56 50,74 30,54" fill="#1877f2" />
+                        <polygon points="88,54 70,36 70,54" fill="#9bd28c" />
+                        <polygon points="70,36 50,56 50,74 70,54" fill="#50c841" />
+                        <polygon points="50,29 59,38 50,47 41,38" fill="#fdb813" />
+                    </svg>
                 ) : (
                     <Image
                         src="/vm-logo-white.png"
