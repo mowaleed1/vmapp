@@ -5,14 +5,15 @@ import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import {
     UploadCloud, X, FileAudio, CheckCircle2, AlertCircle,
-    Loader2, Mic, Square, Trash2, AudioLines, ClipboardCheck
+    Mic, Square, Trash2, AudioLines, ClipboardCheck
 } from 'lucide-react'
+import { VMLoader } from '@/components/ui/vm-loader'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
 import { AudioReviewPanel } from '@/components/AudioReviewPanel'
 
-type FileStatus = 'pending' | 'uploading' | 'transcribing' | 'summarizing' | 'pending_review' | 'completed' | 'failed'
+type FileStatus = 'pending' | 'uploading' | 'transcribing' | 'summarizing' | 'pending_review' | 'awaiting_agent_review' | 'completed' | 'failed'
 
 interface AnalysisResult {
     uploadFileId: string
@@ -22,6 +23,7 @@ interface AnalysisResult {
     priority: string
     category: string
     summary: string
+    requires_agent_review?: boolean
 }
 
 interface UploadFile {
@@ -45,7 +47,7 @@ function formatBytes(bytes: number) {
 
 function StatusIcon({ status }: { status: FileStatus }) {
     if (status === 'uploading' || status === 'transcribing' || status === 'summarizing') {
-        return <Loader2 className="h-4 w-4 animate-spin text-[#056BFC]" />
+        return <div className="flex justify-center w-full"><VMLoader className="h-6 w-6" /></div>
     }
     if (status === 'completed') return <CheckCircle2 className="h-4 w-4 text-[#3FD534]" />
     if (status === 'failed') return <AlertCircle className="h-4 w-4 text-destructive" />
@@ -59,6 +61,7 @@ function StatusLabel({ status }: { status: FileStatus }) {
         transcribing: { label: 'Transcribing…', class: 'text-amber-500' },
         summarizing: { label: 'Analysing…', class: 'text-[#056BFC]' },
         pending_review: { label: 'Ready for review', class: 'text-emerald-600' },
+        awaiting_agent_review: { label: 'Submitted for Review', class: 'text-purple-600' },
         completed: { label: 'Ticket created', class: 'text-emerald-600' },
         failed: { label: 'Failed', class: 'text-destructive' },
     }
@@ -238,9 +241,14 @@ export function UploadZone({ userId, batchId }: { userId: string; batchId: strin
             return
         }
 
-        // Store analysis and mark as pending_review — user must confirm before ticket is created
-        updateFile(uf.id, { status: 'pending_review', progress: 100, analysis: data })
-        toast.success(`Analysis complete for "${uf.file.name}" — please review before creating the ticket.`)
+        if (data.requires_agent_review) {
+            updateFile(uf.id, { status: 'awaiting_agent_review', progress: 100 })
+            toast.success(`Success! "${uf.file.name}" sent to agents for review.`)
+        } else {
+            // Store analysis and mark as pending_review — user must confirm before ticket is created
+            updateFile(uf.id, { status: 'pending_review', progress: 100, analysis: data })
+            toast.success(`Analysis complete for "${uf.file.name}" — please review before creating the ticket.`)
+        }
     }
 
     async function startUpload() {
@@ -273,9 +281,9 @@ export function UploadZone({ userId, batchId }: { userId: string; batchId: strin
     }
 
     const pendingCount = files.filter((f) => f.status === 'pending').length
-    const completedCount = files.filter((f) => f.status === 'completed' || f.status === 'pending_review').length
+    const completedCount = files.filter((f) => f.status === 'completed' || f.status === 'pending_review' || f.status === 'awaiting_agent_review').length
 
-    // Files awaiting review
+    // Files awaiting review (only for admin/agent flow)
     const reviewFiles = files.filter((f) => f.status === 'pending_review' && f.analysis)
 
     return (
@@ -438,7 +446,7 @@ export function UploadZone({ userId, batchId }: { userId: string; batchId: strin
                     >
                         {isUploading ? (
                             <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                <VMLoader className="mr-2 h-5 w-5" />
                                 Processing…
                             </>
                         ) : (

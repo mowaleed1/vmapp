@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Loader2, PlusCircle, CheckCircle2, UserPlus } from 'lucide-react'
+import { PlusCircle, CheckCircle2, UserPlus } from 'lucide-react'
+import { VMLoader } from '@/components/ui/vm-loader'
 import { cn } from '@/lib/utils'
 
 interface ActivityLog {
@@ -72,7 +73,7 @@ export function TicketActivityLog({ ticketId }: { ticketId: string }) {
         }
     }, [ticketId])
 
-    if (loading) return <div className="p-8 text-center text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin mx-auto" /></div>
+    if (loading) return <div className="flex justify-center p-8"><VMLoader className="h-6 w-6" /></div>
 
     if (logs.length === 0) return null
 

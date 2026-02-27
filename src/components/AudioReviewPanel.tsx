@@ -4,8 +4,9 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
     CheckCircle2, FileText, Tag, AlertTriangle, Info,
-    ChevronDown, ChevronUp, Loader2, X
+    ChevronDown, ChevronUp, X
 } from 'lucide-react'
+import { VMLoader } from '@/components/ui/vm-loader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -202,7 +203,7 @@ export function AudioReviewPanel({ analysis, onDismiss }: Props) {
                     className="bg-[#056BFC] hover:bg-[#0455CC] text-white font-semibold px-6"
                 >
                     {creating
-                        ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating…</>
+                        ? <><VMLoader className="mr-2 h-5 w-5" /> Creating…</>
                         : 'Create Ticket'}
                 </Button>
             </div>

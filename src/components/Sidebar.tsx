@@ -22,14 +22,14 @@ import { toast } from 'sonner'
 
 const navItems = [
     { label: 'Dashboard', href: '/dashboard/agent', icon: LayoutDashboard },
-    { label: 'Analytics', href: '/dashboard/admin', icon: BarChart2 },
-    { label: 'Tickets', href: '/tickets', icon: Ticket },
-    { label: 'Upload', href: '/upload', icon: Upload },
-    { label: 'Search', href: '/search', icon: Search },
-    { label: 'Settings', href: '/settings', icon: Settings },
+    { label: 'Analytics', href: '/dashboard/admin', icon: BarChart2, restrictTo: ['admin'] },
+    { label: 'Tickets', href: '/tickets', icon: Ticket, restrictTo: ['admin', 'agent'] },
+    { label: 'Upload', href: '/upload', icon: Upload }, // Everyone
+    { label: 'Search', href: '/search', icon: Search, restrictTo: ['admin', 'agent'] },
+    { label: 'Settings', href: '/settings', icon: Settings, restrictTo: ['admin', 'agent'] },
 ]
 
-export function Sidebar() {
+export function Sidebar({ userRole = 'user' }: { userRole?: string }) {
     const pathname = usePathname()
     const [collapsed, setCollapsed] = useState(false)
     const [views, setViews] = useState<{ id: string; name: string; filters: Record<string, string> }[]>([])
@@ -93,15 +93,19 @@ export function Sidebar() {
             </div>
 
             {/* Nav links */}
-            <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto">
+            <nav className="flex-1 space-y-1.5 pt-4">
                 <div className="space-y-0.5">
                     {navItems.map((item) => {
-                        const Icon = item.icon
-                        const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+                        if (item.restrictTo && !item.restrictTo.includes(userRole)) return null
 
-                        const linkContent = (
+                        const isDashboard = item.label === 'Dashboard'
+                        const targetHref = isDashboard && userRole === 'user' ? '/dashboard/user' : item.href
+                        const isActive = pathname === targetHref || pathname.startsWith(targetHref + '/')
+
+                        const Icon = item.icon
+                        const NavItem = () => (
                             <Link
-                                href={item.href}
+                                href={targetHref}
                                 className={cn(
                                     'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',
                                     collapsed ? 'justify-center' : '',
@@ -121,18 +125,18 @@ export function Sidebar() {
                         if (collapsed) {
                             return (
                                 <Tooltip key={item.href} delayDuration={0}>
-                                    <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+                                    <TooltipTrigger asChild><NavItem /></TooltipTrigger>
                                     <TooltipContent side="right">{item.label}</TooltipContent>
                                 </Tooltip>
                             )
                         }
 
-                        return <div key={item.href}>{linkContent}</div>
+                        return <div key={item.href}><NavItem /></div>
                     })}
                 </div>
 
                 {/* Saved Views Section */}
-                {views.length > 0 && (
+                {views.length > 0 && userRole !== 'user' && (
                     <div className="pt-6 pb-2">
                         {!collapsed && (
                             <p className="px-3 text-xs font-semibold text-white/40 uppercase tracking-wider mb-2">

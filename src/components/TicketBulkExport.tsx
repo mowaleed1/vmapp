@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import { Download, Loader2 } from 'lucide-react'
+import { Download } from 'lucide-react'
+import { VMLoader } from '@/components/ui/vm-loader'
 import { toast } from 'sonner'
 
 export function TicketBulkExport({ ticketIds }: { ticketIds: string[] }) {
@@ -77,7 +78,7 @@ export function TicketBulkExport({ ticketIds }: { ticketIds: string[] }) {
             disabled={exporting || ticketIds.length === 0}
             className="gap-2"
         >
-            {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            {exporting ? <VMLoader className="h-5 w-5 mr-1" /> : <Download className="h-4 w-4" />}
             Export CSV
         </Button>
     )

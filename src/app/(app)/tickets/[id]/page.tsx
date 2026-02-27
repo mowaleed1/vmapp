@@ -48,6 +48,12 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
 
     if (!ticket) notFound()
 
+    // Fetch current user's role to determine UI permissions
+    const { data: profile } = await supabase.from('users').select('role:roles(name)').eq('id', user.id).single()
+    const roleData = profile?.role as any
+    const currentRoleName = Array.isArray(roleData) ? roleData[0]?.name : roleData?.name
+    const isRegularUser = currentRoleName === 'user'
+
     const { data: comments } = await supabase
         .from('ticket_comments')
         .select(`*, author: users!ticket_comments_author_id_fkey(id, full_name, email)`)
@@ -81,13 +87,26 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
                     <div className="flex items-center gap-3 shrink-0 bg-card p-2 rounded-xl border shadow-sm">
                         <div className="flex items-center gap-2 pl-2 border-r pr-3">
                             <User className="h-4 w-4 text-muted-foreground" />
-                            <TicketAssignSelect
-                                ticketId={ticket.id}
-                                currentAssignedId={(ticket.assigned as any)?.id ?? null}
-                                currentAssignedName={(ticket.assigned as any)?.full_name ?? (ticket.assigned as any)?.email ?? null}
-                            />
+                            {isRegularUser ? (
+                                <span className="text-sm font-medium">
+                                    {(ticket.assigned as any)?.full_name ?? (ticket.assigned as any)?.email ?? 'Unassigned'}
+                                </span>
+                            ) : (
+                                <TicketAssignSelect
+                                    ticketId={ticket.id}
+                                    currentAssignedId={(ticket.assigned as any)?.id ?? null}
+                                    currentAssignedName={(ticket.assigned as any)?.full_name ?? (ticket.assigned as any)?.email ?? null}
+                                />
+                            )}
                         </div>
-                        <TicketStatusSelect ticketId={ticket.id} currentStatus={ticket.status} />
+                        {isRegularUser ? (
+                            <div className="flex items-center gap-1.5 px-3">
+                                <StatusIcon status={ticket.status} />
+                                <span className="text-sm font-medium capitalize">{ticket.status.replace('_', ' ')}</span>
+                            </div>
+                        ) : (
+                            <TicketStatusSelect ticketId={ticket.id} currentStatus={ticket.status} />
+                        )}
                     </div>
                 </div>
             </div >

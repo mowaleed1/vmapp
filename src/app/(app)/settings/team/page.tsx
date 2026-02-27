@@ -2,9 +2,17 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Loader2, Shield, Users, ChevronDown } from 'lucide-react'
+import { Shield, Users, ChevronDown } from 'lucide-react'
+import { VMLoader } from '@/components/ui/vm-loader'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { updateUserRole } from '@/app/actions/team'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 interface TeamMember {
     id: string
@@ -23,7 +31,7 @@ interface Role {
 const ROLE_COLORS: Record<string, string> = {
     admin: 'bg-red-50 text-red-700 border-red-200',
     agent: 'bg-blue-50 text-[#056BFC] border-blue-200',
-    viewer: 'bg-gray-50 text-gray-600 border-gray-200',
+    user: 'bg-gray-50 text-gray-600 border-gray-200',
 }
 
 export default function TeamSettingsPage() {
@@ -41,23 +49,45 @@ export default function TeamSettingsPage() {
             if (!user) return
             setCurrentUserId(user.id)
 
-            const [membersRes, rolesRes, selfRes] = await Promise.all([
-                supabase.from('users').select('id, full_name, email, created_at, role:roles(id, name)').order('created_at'),
+            const [rolesRes, selfRes] = await Promise.all([
                 supabase.from('roles').select('id, name, description').order('name'),
                 supabase.from('users').select('role:roles(name)').eq('id', user.id).single(),
             ])
 
-            if (membersRes.data) {
-                // Supabase returns role as an array for joined tables — normalise to object
-                const normalised = (membersRes.data as unknown[]).map((m: unknown) => {
+            const userRoleName = (selfRes.data?.role as any)?.name as string | undefined
+            setCurrentUserRole(userRoleName ?? null)
+
+            // If admin or agent, load everyone. If user, load only self.
+            const isUserRole = userRoleName === 'user'
+
+            const membersQuery = supabase
+                .from('users')
+                .select('id, full_name, email, created_at, role:roles(id, name)')
+                .order('created_at')
+
+            if (isUserRole) {
+                membersQuery.eq('id', user.id)
+            }
+
+            const { data: membersData } = await membersQuery
+
+            if (membersData) {
+                // Supabase returns role as an array for joined tables, but sometimes an object for 1:1.
+                const normalised = (membersData as unknown[]).map((m: unknown) => {
                     const row = m as Record<string, unknown>
-                    const roleArr = row.role as Array<{ id: string; name: string }>
-                    return { ...row, role: roleArr?.[0] ?? null } as TeamMember
+                    let finalRole = null
+
+                    if (Array.isArray(row.role)) {
+                        finalRole = row.role[0] ?? null
+                    } else if (row.role && typeof row.role === 'object') {
+                        finalRole = row.role
+                    }
+
+                    return { ...row, role: finalRole } as TeamMember
                 })
                 setMembers(normalised)
             }
             if (rolesRes.data) setRoles(rolesRes.data)
-            if (selfRes.data) setCurrentUserRole((selfRes.data.role as any)?.name ?? null)
             setLoading(false)
         }
         load()
@@ -66,12 +96,11 @@ export default function TeamSettingsPage() {
     async function changeRole(memberId: string, newRoleId: string, newRoleName: string) {
         setSavingId(memberId)
         try {
-            const supabase = createClient()
-            const { error } = await supabase
-                .from('users')
-                .update({ role_id: newRoleId })
-                .eq('id', memberId)
-            if (error) throw error
+            const res = await updateUserRole(memberId, newRoleId)
+            if (!res.success) {
+                toast.error(res.error || 'Failed to update role')
+                return
+            }
 
             setMembers(prev => prev.map(m =>
                 m.id === memberId
@@ -91,7 +120,7 @@ export default function TeamSettingsPage() {
     if (loading) {
         return (
             <div className="flex items-center justify-center h-64">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                <VMLoader className="h-8 w-8" />
             </div>
         )
     }
@@ -123,8 +152,8 @@ export default function TeamSettingsPage() {
             </div>
 
             {/* Members table */}
-            <div className="rounded-xl border bg-card overflow-hidden">
-                <div className="grid grid-cols-[1fr_140px_120px] px-5 py-3 border-b bg-muted/30 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <div className="rounded-xl border bg-card overflow-x-auto">
+                <div className="min-w-[500px] grid grid-cols-[1fr_140px_120px] px-5 py-3 border-b bg-muted/30 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     <span>Member</span>
                     <span>Role</span>
                     <span>Joined</span>
@@ -134,7 +163,7 @@ export default function TeamSettingsPage() {
                         const roleName = member.role?.name ?? 'No role'
                         const isSelf = member.id === currentUserId
                         return (
-                            <div key={member.id} className="grid grid-cols-[1fr_140px_120px] items-center px-5 py-4">
+                            <div key={member.id} className="min-w-[500px] grid grid-cols-[1fr_140px_120px] items-center px-5 py-4">
                                 {/* Avatar + info */}
                                 <div className="flex items-center gap-3 min-w-0">
                                     <div className="h-8 w-8 rounded-full bg-[#056BFC] text-white text-xs font-semibold flex items-center justify-center shrink-0">
@@ -198,47 +227,40 @@ function RoleDropdown({ currentRoleId, currentRoleName, roles, saving, onChange 
     saving: boolean
     onChange: (id: string, name: string) => void
 }) {
-    const [open, setOpen] = useState(false)
-
     return (
-        <div className="relative">
-            <button
-                onClick={() => setOpen(!open)}
-                disabled={saving}
-                className={cn(
-                    'flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium transition-colors',
-                    ROLE_COLORS[currentRoleName] ?? 'bg-muted text-muted-foreground border-muted',
-                    'hover:opacity-80'
-                )}
-            >
-                {saving
-                    ? <Loader2 className="h-3 w-3 animate-spin" />
-                    : <Shield className="h-3 w-3" />
-                }
-                <span className="capitalize">{currentRoleName}</span>
-                <ChevronDown className="h-3 w-3 opacity-60" />
-            </button>
-
-            {open && (
-                <>
-                    <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-                    <div className="absolute z-20 top-full left-0 mt-1 rounded-lg border bg-popover shadow-lg py-1 min-w-[140px]">
-                        {roles.map(role => (
-                            <button
-                                key={role.id}
-                                onClick={() => { onChange(role.id, role.name); setOpen(false) }}
-                                className={cn(
-                                    'flex items-center gap-2 w-full px-3 py-2 text-xs text-left hover:bg-muted transition-colors',
-                                    currentRoleId === role.id ? 'font-semibold text-[#056BFC]' : ''
-                                )}
-                            >
-                                <Shield className="h-3 w-3" />
-                                <span className="capitalize">{role.name}</span>
-                            </button>
-                        ))}
-                    </div>
-                </>
-            )}
-        </div>
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <button
+                    disabled={saving}
+                    className={cn(
+                        'flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium transition-colors outline-none cursor-pointer',
+                        ROLE_COLORS[currentRoleName] ?? 'bg-muted text-muted-foreground border-muted',
+                        'hover:opacity-80'
+                    )}
+                >
+                    {saving
+                        ? <VMLoader className="h-4 w-4" />
+                        : <Shield className="h-3 w-3" />
+                    }
+                    <span className="capitalize">{currentRoleName}</span>
+                    <ChevronDown className="h-3 w-3 opacity-60" />
+                </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-[140px] z-[100]">
+                {roles.map(role => (
+                    <DropdownMenuItem
+                        key={role.id}
+                        onClick={() => onChange(role.id, role.name)}
+                        className={cn(
+                            'flex items-center gap-2 cursor-pointer w-full text-xs py-2',
+                            currentRoleId === role.id ? 'font-semibold text-[#056BFC]' : ''
+                        )}
+                    >
+                        <Shield className="h-3 w-3" />
+                        <span className="capitalize">{role.name}</span>
+                    </DropdownMenuItem>
+                ))}
+            </DropdownMenuContent>
+        </DropdownMenu>
     )
 }

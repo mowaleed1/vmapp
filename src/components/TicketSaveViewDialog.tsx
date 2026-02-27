@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Bookmark, Loader2 } from 'lucide-react'
+import { Bookmark } from 'lucide-react'
+import { VMLoader } from '@/components/ui/vm-loader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -110,7 +111,7 @@ export function TicketSaveViewDialog({ currentFilters }: { currentFilters: Recor
                             Cancel
                         </Button>
                         <Button type="submit" className="bg-[#056BFC] hover:bg-[#0455CC] text-white" disabled={saving || !name.trim()}>
-                            {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Bookmark className="h-4 w-4 mr-2" />}
+                            {saving ? <VMLoader className="h-5 w-5 mr-2" /> : <Bookmark className="h-4 w-4 mr-2" />}
                             Save View
                         </Button>
                     </DialogFooter>

@@ -4,7 +4,8 @@ import { useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Input } from '@/components/ui/input'
-import { Search, Loader2, Ticket, AlertCircle, Clock, CheckCircle2, XCircle } from 'lucide-react'
+import { Search, Ticket, AlertCircle, Clock, CheckCircle2, XCircle } from 'lucide-react'
+import { VMLoader } from '@/components/ui/vm-loader'
 
 interface TicketResult {
     id: string
@@ -69,7 +70,7 @@ export function TicketSearch() {
             {/* Search input */}
             <div className="relative">
                 {loading
-                    ? <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground animate-spin" />
+                    ? <div className="absolute left-3 top-1/2 -translate-y-1/2"><VMLoader className="h-5 w-5" /></div>
                     : <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 }
                 <Input

@@ -8,7 +8,8 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Loader2, Eye, EyeOff, AlertCircle } from 'lucide-react'
+import { Eye, EyeOff, AlertCircle } from 'lucide-react'
+import { VMLoader } from '@/components/ui/vm-loader'
 
 export default function LoginPage() {
     const router = useRouter()
@@ -45,16 +46,12 @@ export default function LoginPage() {
 
     return (
         <div className="w-full max-w-md">
-            {/* Mobile logo */}
-            <div className="flex justify-center lg:hidden mb-8">
-                <Image src="/vm-logo.png" alt="ValueMomentum" width={180} height={50} className="object-contain" />
-            </div>
 
             {/* Card — white so it pops on the blue half */}
             <div className="bg-white rounded-2xl shadow-2xl p-8 space-y-6 border border-white/20">
                 <div>
                     <h1 className="text-2xl font-bold text-[#1a1a1a]">Sign in</h1>
-                    <p className="text-muted-foreground text-sm mt-1">Access your Value Momentum account</p>
+                    <p className="text-muted-foreground text-sm mt-1">Access your ValueMomentum account</p>
                 </div>
 
                 <form onSubmit={handleLogin} className="space-y-4">
@@ -116,7 +113,7 @@ export default function LoginPage() {
                         disabled={loading}
                     >
                         {loading ? (
-                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing in…</>
+                            <><VMLoader className="mr-2 h-5 w-5" /> Signing in…</>
                         ) : (
                             'Sign in'
                         )}

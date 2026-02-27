@@ -3,7 +3,8 @@
 import { useState, useEffect, useTransition } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import { Loader2, CheckCircle2, User, Shield, Bell, Palette, Users } from 'lucide-react'
+import { CheckCircle2, User, Shield, Bell, Palette, Users } from 'lucide-react'
+import { VMLoader } from '@/components/ui/vm-loader'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -19,9 +20,9 @@ interface Profile {
 const TABS = [
     { id: 'profile', label: 'Profile', icon: User, href: '/settings' },
     { id: 'account', label: 'Account', icon: Shield, href: '/settings' },
-    { id: 'notifications', label: 'Notifications', icon: Bell, href: '/settings' },
+    { id: 'notifications', label: 'Notifications', icon: Bell, href: '/settings', restrictTo: ['admin', 'agent'] },
     { id: 'appearance', label: 'Appearance', icon: Palette, href: '/settings' },
-    { id: 'team', label: 'Team', icon: Users, href: '/settings/team' },
+    { id: 'team', label: 'Team', icon: Users, href: '/settings/team', restrictTo: ['admin', 'agent'] },
 ]
 
 export default function SettingsPage() {
@@ -51,6 +52,11 @@ export default function SettingsPage() {
     }, [])
 
     async function saveProfile() {
+        if (currentRole === 'user') {
+            toast.error('Users are not permitted to modify their details directly.')
+            return
+        }
+
         const supabase = createClient()
         const { error } = await supabase
             .from('users')
@@ -73,10 +79,14 @@ export default function SettingsPage() {
     if (loading) {
         return (
             <div className="flex items-center justify-center h-64">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <VMLoader className="h-10 w-10" />
             </div>
         )
     }
+
+    const roleData = profile?.role as any
+    const roleName = Array.isArray(roleData) ? roleData[0]?.name : roleData?.name
+    const currentRole = roleName || 'user'
 
     const initials = (profile?.full_name || profile?.email || '?').slice(0, 2).toUpperCase()
 
@@ -91,6 +101,8 @@ export default function SettingsPage() {
                 {/* Sidebar Tabs */}
                 <nav className="w-48 shrink-0 space-y-1">
                     {TABS.map(tab => {
+                        if (tab.restrictTo && !tab.restrictTo.includes(currentRole)) return null
+
                         const Icon = tab.icon
                         const isTeam = tab.id === 'team'
                         if (isTeam) {
@@ -156,9 +168,16 @@ export default function SettingsPage() {
                                     type="text"
                                     value={fullName}
                                     onChange={e => setFullName(e.target.value)}
+                                    readOnly={currentRole === 'user'}
                                     placeholder="Your full name"
-                                    className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#056BFC]/50"
+                                    className={cn(
+                                        "w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#056BFC]/50",
+                                        currentRole === 'user' ? "bg-muted text-muted-foreground cursor-not-allowed" : "bg-background"
+                                    )}
                                 />
+                                {currentRole === 'user' && (
+                                    <p className="text-xs text-muted-foreground">Your account details are managed by your administrator.</p>
+                                )}
                             </div>
 
                             {/* Email (read-only) */}
@@ -173,13 +192,15 @@ export default function SettingsPage() {
                                 <p className="text-xs text-muted-foreground">Email is managed via Supabase Auth and cannot be changed here.</p>
                             </div>
 
-                            <Button
-                                onClick={saveProfile}
-                                disabled={isPending || !fullName.trim()}
-                                className="bg-[#056BFC] hover:bg-[#056BFC]/90 text-white"
-                            >
-                                {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…</> : <><CheckCircle2 className="mr-2 h-4 w-4" /> Save Changes</>}
-                            </Button>
+                            {currentRole !== 'user' && (
+                                <Button
+                                    onClick={saveProfile}
+                                    disabled={isPending || !fullName.trim()}
+                                    className="bg-[#056BFC] hover:bg-[#056BFC]/90 text-white"
+                                >
+                                    {isPending ? <><VMLoader className="mr-2 h-5 w-5" /> Saving…</> : <><CheckCircle2 className="mr-2 h-4 w-4" /> Save Changes</>}
+                                </Button>
+                            )}
                         </div>
                     )}
 

@@ -8,7 +8,8 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Loader2, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { VMLoader } from '@/components/ui/vm-loader'
 
 export default function SignupPage() {
     const router = useRouter()
@@ -157,7 +158,7 @@ export default function SignupPage() {
                         disabled={loading}
                     >
                         {loading
-                            ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating account…</>
+                            ? <><VMLoader className="mr-2 h-5 w-5" /> Creating account…</>
                             : 'Create account'}
                     </Button>
                 </form>

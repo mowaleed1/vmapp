@@ -1,6 +1,6 @@
 ﻿import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { Ticket, UploadCloud, Clock, CheckCircle2, FileText, Plus, Search, List } from 'lucide-react'
+import { Ticket, UploadCloud, Clock, CheckCircle2, FileText, Plus, Search, List, Activity } from 'lucide-react'
 import { DashboardCharts } from '@/components/DashboardCharts'
 import { RealtimeStats } from '@/components/RealtimeStats'
 import Link from 'next/link'
@@ -44,6 +44,13 @@ export default async function AgentDashboardPage() {
     })
 
     const { data: recentTickets } = await supabase.from('tickets').select('id, title, priority, status, created_at, ticket_number').order('created_at', { ascending: false }).limit(6)
+
+    // Pending User Uploads
+    const { data: pendingUploads } = await supabase
+        .from('upload_files')
+        .select('id, file_name, created_at, ai_analysis, users!upload_files_user_id_fkey(full_name, email)')
+        .eq('status', 'awaiting_agent_review')
+        .order('created_at', { ascending: true })
 
     const greetingHour = new Date().getHours()
     const greeting = greetingHour < 12 ? 'Good morning' : greetingHour < 17 ? 'Good afternoon' : 'Good evening'
@@ -99,6 +106,44 @@ export default async function AgentDashboardPage() {
                 ]}
                 byDay={last14}
             />
+
+            {/* Pending Approvals */}
+            {pendingUploads && pendingUploads.length > 0 && (
+                <div className="rounded-xl border border-purple-200 bg-purple-50/30 overflow-hidden shadow-sm">
+                    <div className="flex items-center gap-2 px-5 py-4 border-b border-purple-100 bg-purple-50/50 text-purple-900">
+                        <Activity className="h-5 w-5 text-purple-600 animate-pulse" />
+                        <h3 className="font-semibold">Review Required: User Uploads</h3>
+                        <span className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full bg-purple-600 text-white shadow-sm">
+                            {pendingUploads.length} pending
+                        </span>
+                    </div>
+                    <div className="divide-y divide-purple-100/50">
+                        {pendingUploads.map(upload => {
+                            const analysis = upload.ai_analysis as any
+                            return (
+                                <Link key={upload.id} href={`/upload/review/${upload.id}`} className="flex items-center justify-between px-5 py-3 hover:bg-purple-100/50 transition-colors group">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <div className="h-10 w-10 rounded-lg bg-white border border-purple-100 shadow-sm flex items-center justify-center shrink-0 group-hover:border-purple-300 transition-colors">
+                                            <FileText className="h-5 w-5 text-purple-500" />
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="font-semibold text-sm text-purple-950 truncate">{analysis?.title || 'Untitled Audio Format'}</p>
+                                            <div className="flex items-center gap-2 mt-0.5 text-xs text-purple-700/80">
+                                                <span>User: {(upload.users as any)?.full_name || (upload.users as any)?.email}</span>
+                                                <span>·</span>
+                                                <span>Submitted {timeAgo(upload.created_at)}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <span className="text-xs font-medium text-purple-600 bg-white border border-purple-200 px-3 py-1.5 rounded-md shadow-sm group-hover:bg-purple-600 group-hover:text-white transition-all whitespace-nowrap ml-4">
+                                        Review →
+                                    </span>
+                                </Link>
+                            )
+                        })}
+                    </div>
+                </div>
+            )}
 
             {/* Recent Tickets */}
             <div className="rounded-xl border bg-card">

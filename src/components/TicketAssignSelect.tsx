@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { UserCheck, Loader2, ChevronDown } from 'lucide-react'
+import { UserCheck, ChevronDown } from 'lucide-react'
+import { VMLoader } from '@/components/ui/vm-loader'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -98,7 +99,7 @@ export function TicketAssignSelect({ ticketId, currentAssignedId, currentAssigne
                 )}
             >
                 {saving
-                    ? <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground shrink-0" />
+                    ? <VMLoader className="h-4 w-4 shrink-0" />
                     : <UserCheck className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                 }
                 <span className={cn(

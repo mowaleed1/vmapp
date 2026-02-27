@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { TicketBulkExport } from './TicketBulkExport'
 import { toast } from 'sonner'
-import { Loader2 } from 'lucide-react'
+import { VMLoader } from '@/components/ui/vm-loader'
 
 export function TicketBulkActions({ selectedIds, onClear }: { selectedIds: string[], onClear: () => void }) {
     const router = useRouter()
@@ -119,7 +119,7 @@ export function TicketBulkActions({ selectedIds, onClear }: { selectedIds: strin
             <Button variant="ghost" size="sm" onClick={onClear} className="text-muted-foreground ml-1 h-8" disabled={updating}>
                 Cancel
             </Button>
-            {updating && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground ml-2" />}
+            {updating && <VMLoader className="h-5 w-5 ml-2" />}
         </div>
     )
 }

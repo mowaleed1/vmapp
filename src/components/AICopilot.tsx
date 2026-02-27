@@ -2,12 +2,13 @@
 
 import { useState } from 'react'
 import {
-    Sparkles, Loader2, ChevronRight, Copy, CheckCheck,
+    Sparkles, ChevronRight, Copy, CheckCheck,
     GitBranch, Zap, ExternalLink, AlertTriangle, Info, CheckCircle2
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { VMLoader } from '@/components/ui/vm-loader'
 import Link from 'next/link'
 
 interface SimilarTicket {
@@ -157,7 +158,7 @@ export function AICopilot({
             <div className="p-4">
                 {loading && (
                     <div className="flex items-center justify-center gap-2 py-8 text-muted-foreground">
-                        <Loader2 className="h-5 w-5 animate-spin text-[#056BFC]" />
+                        <VMLoader className="h-8 w-8" />
                         <span className="text-sm">
                             {activeTab === 'replies' ? 'Generating replies…' : activeTab === 'similar' ? 'Finding similar tickets…' : 'Analyzing ticket…'}
                         </span>

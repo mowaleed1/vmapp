@@ -81,13 +81,27 @@ Return ONLY valid JSON with this exact shape:
         const raw = completion.choices[0].message.content ?? '{}'
         const ticketFields = JSON.parse(raw)
 
-        // 7. Mark as "pending_review" — do NOT auto-create ticket
+        // Find the user's role to determine if this requires agent review
+        const { data: profile } = await supabase
+            .from('users')
+            .select('role:roles(name)')
+            .eq('id', user.id)
+            .single()
+
+        const roleData = profile?.role as any
+        const roleName = Array.isArray(roleData) ? roleData[0]?.name : roleData?.name
+        const isUserRole = roleName === 'user'
+
+        const statusUpdate = isUserRole ? 'awaiting_agent_review' : 'pending_review'
+
+        // 7. Update the DB record with the ai_analysis
         await supabase.from('upload_files').update({
-            status: 'pending_review',
+            status: statusUpdate,
             transcript,
+            ai_analysis: ticketFields
         }).eq('id', uploadFileId)
 
-        // Return analysis for user review
+        // Return analysis (or a success flag) to the frontend
         return NextResponse.json({
             uploadFileId,
             transcript,
@@ -97,6 +111,7 @@ Return ONLY valid JSON with this exact shape:
             category: ticketFields.category ?? 'general',
             summary: ticketFields.summary ?? '',
             linked_ticket_number: ticketFields.linked_ticket_number ?? null,
+            requires_agent_review: isUserRole,
         })
 
     } catch (err: unknown) {

@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useEffect } from 'react'
 import { X, LayoutDashboard, Ticket, Upload, Search, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -13,8 +14,15 @@ const navItems = [
     { label: 'Settings', href: '/settings', icon: Settings },
 ]
 
-export function MobileNav({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function MobileNav({ open, onClose, userRole = 'user' }: { open: boolean; onClose: () => void; userRole?: string }) {
     const pathname = usePathname()
+
+    // Close the drawer automatically when the route has actually changed
+    useEffect(() => {
+        if (open) {
+            onClose()
+        }
+    }, [pathname]) // Intentionally not including onClose so it doesn't loop
 
     if (!open) return null
 
@@ -50,13 +58,20 @@ export function MobileNav({ open, onClose }: { open: boolean; onClose: () => voi
                 {/* Nav Links */}
                 <nav className="flex-1 px-3 py-4 space-y-1">
                     {navItems.map((item) => {
+                        const isDashboard = item.label === 'Dashboard'
+                        const targetHref = isDashboard && userRole === 'user' ? '/dashboard/user' : item.href
+                        const isActive = pathname === targetHref || pathname.startsWith(targetHref + '/')
+
                         const Icon = item.icon
-                        const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
                         return (
                             <Link
                                 key={item.href}
-                                href={item.href}
-                                onClick={onClose}
+                                href={targetHref}
+                                onClick={() => {
+                                    // Only close manually if we're already on that page. 
+                                    // Otherwise, let the RouteLoader and useEffect handle it smoothly!
+                                    if (isActive) onClose()
+                                }}
                                 className={cn(
                                     'flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-all',
                                     isActive

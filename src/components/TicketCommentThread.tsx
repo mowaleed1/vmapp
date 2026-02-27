@@ -5,7 +5,8 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Loader2, Lock, Globe, Send, MessageSquare, StickyNote } from 'lucide-react'
+import { Lock, Globe, Send, MessageSquare, StickyNote } from 'lucide-react'
+import { VMLoader } from '@/components/ui/vm-loader'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { AICopilot } from '@/components/AICopilot'
@@ -282,7 +283,7 @@ export function TicketCommentThread({
                             )}
                         >
                             {isPending
-                                ? <Loader2 className="h-4 w-4 animate-spin" />
+                                ? <VMLoader className="h-5 w-5" />
                                 : <><Send className="mr-1.5 h-3.5 w-3.5" />{replyMode === 'internal' ? 'Save Note' : 'Send Reply'}</>
                             }
                         </Button>

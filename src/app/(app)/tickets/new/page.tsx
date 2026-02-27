@@ -10,7 +10,8 @@ import { Textarea } from '@/components/ui/textarea'
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-import { ArrowLeft, Loader2, Plus } from 'lucide-react'
+import { ArrowLeft, Plus } from 'lucide-react'
+import { VMLoader } from '@/components/ui/vm-loader'
 import { toast } from 'sonner'
 
 export default function NewTicketPage() {
@@ -147,7 +148,7 @@ export default function NewTicketPage() {
                             className="flex-1 bg-[#056BFC] hover:bg-[#0455CC] text-white font-semibold"
                         >
                             {loading
-                                ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating…</>
+                                ? <><VMLoader className="mr-2 h-5 w-5" /> Creating…</>
                                 : <><Plus className="mr-2 h-4 w-4" /> Create Ticket</>}
                         </Button>
                         <Link href="/tickets">
