@@ -15,6 +15,7 @@ interface TicketResult {
     category: string | null
     summary: string | null
     created_at: string
+    ticket_number: string | null
 }
 
 const STATUS_CONFIG: Record<string, { icon: any; class: string; label: string }> = {
@@ -49,8 +50,8 @@ export function TicketSearch() {
         const supabase = createClient()
         const { data } = await supabase
             .from('tickets')
-            .select('id, title, priority, status, category, summary, created_at')
-            .or(`title.ilike.%${q}%,description.ilike.%${q}%,summary.ilike.%${q}%,category.ilike.%${q}%`)
+            .select('id, title, priority, status, category, summary, created_at, ticket_number')
+            .or(`title.ilike.%${q}%,description.ilike.%${q}%,summary.ilike.%${q}%,category.ilike.%${q}%,ticket_number.ilike.%${q}%,transcript.ilike.%${q}%`)
             .order('created_at', { ascending: false })
             .limit(20)
 
@@ -111,7 +112,7 @@ export function TicketSearch() {
                                         <p className="text-xs text-muted-foreground mt-0.5 truncate">{t.summary}</p>
                                     )}
                                     <p className="text-xs font-mono text-muted-foreground mt-0.5">
-                                        TKT-{t.id.slice(0, 8).toUpperCase()}
+                                        {t.ticket_number ?? `VM-${t.id.slice(0, 6).toUpperCase()}`}
                                         {t.category && ` · ${t.category.replace('_', ' ')}`}
                                     </p>
                                 </div>

@@ -25,14 +25,25 @@ export default async function AgentDashboardPage() {
     const { data: profile } = await supabase.from('users').select('full_name').eq('id', user.id).single()
     const firstName = profile?.full_name?.split(' ')[0] || 'Agent'
 
-    const { count: openCount } = await supabase.from('tickets').select('*', { count: 'exact', head: true }).eq('status', 'open')
-    const { count: inProgressCount } = await supabase.from('tickets').select('*', { count: 'exact', head: true }).eq('status', 'in_progress')
-    const { count: resolvedCount } = await supabase.from('tickets').select('*', { count: 'exact', head: true }).eq('status', 'resolved')
-    const { count: closedCount } = await supabase.from('tickets').select('*', { count: 'exact', head: true }).eq('status', 'closed')
-    const { count: criticalCount } = await supabase.from('tickets').select('*', { count: 'exact', head: true }).eq('priority', 'critical')
-    const { count: highCount } = await supabase.from('tickets').select('*', { count: 'exact', head: true }).eq('priority', 'high')
-    const { count: mediumCount } = await supabase.from('tickets').select('*', { count: 'exact', head: true }).eq('priority', 'medium')
-    const { count: lowCount } = await supabase.from('tickets').select('*', { count: 'exact', head: true }).eq('priority', 'low')
+    const [
+        { count: openCount },
+        { count: inProgressCount },
+        { count: resolvedCount },
+        { count: closedCount },
+        { count: criticalCount },
+        { count: highCount },
+        { count: mediumCount },
+        { count: lowCount }
+    ] = await Promise.all([
+        supabase.from('tickets').select('*', { count: 'exact', head: true }).eq('status', 'open'),
+        supabase.from('tickets').select('*', { count: 'exact', head: true }).eq('status', 'in_progress'),
+        supabase.from('tickets').select('*', { count: 'exact', head: true }).eq('status', 'resolved'),
+        supabase.from('tickets').select('*', { count: 'exact', head: true }).eq('status', 'closed'),
+        supabase.from('tickets').select('*', { count: 'exact', head: true }).eq('priority', 'critical'),
+        supabase.from('tickets').select('*', { count: 'exact', head: true }).eq('priority', 'high'),
+        supabase.from('tickets').select('*', { count: 'exact', head: true }).eq('priority', 'medium'),
+        supabase.from('tickets').select('*', { count: 'exact', head: true }).eq('priority', 'low')
+    ])
 
     const now = new Date()
     const { data: allTickets } = await supabase.from('tickets').select('created_at').gte('created_at', new Date(Date.now() - 14 * 86400000).toISOString())
@@ -45,12 +56,13 @@ export default async function AgentDashboardPage() {
 
     const { data: recentTickets } = await supabase.from('tickets').select('id, title, priority, status, created_at, ticket_number').order('created_at', { ascending: false }).limit(6)
 
-    // Pending User Uploads
-    const { data: pendingUploads } = await supabase
-        .from('upload_files')
-        .select('id, file_name, created_at, ai_analysis, users!upload_files_user_id_fkey(full_name, email)')
-        .eq('status', 'awaiting_agent_review')
-        .order('created_at', { ascending: true })
+    // Quick Actions — professional grid, no emojis
+    const quickActions = [
+        { href: '/upload', label: 'Upload Audio', icon: UploadCloud, desc: 'Transcribe & create' },
+        { href: '/tickets/new', label: 'New Ticket', icon: Plus, desc: 'Manual creation' },
+        { href: '/search', label: 'Search', icon: Search, desc: 'Find tickets' },
+        { href: '/requests', label: 'Requests', icon: Activity, desc: 'Pending user uploads' },
+    ]
 
     const greetingHour = new Date().getHours()
     const greeting = greetingHour < 12 ? 'Good morning' : greetingHour < 17 ? 'Good afternoon' : 'Good evening'
@@ -107,43 +119,7 @@ export default async function AgentDashboardPage() {
                 byDay={last14}
             />
 
-            {/* Pending Approvals */}
-            {pendingUploads && pendingUploads.length > 0 && (
-                <div className="rounded-xl border border-purple-200 bg-purple-50/30 overflow-hidden shadow-sm">
-                    <div className="flex items-center gap-2 px-5 py-4 border-b border-purple-100 bg-purple-50/50 text-purple-900">
-                        <Activity className="h-5 w-5 text-purple-600 animate-pulse" />
-                        <h3 className="font-semibold">Review Required: User Uploads</h3>
-                        <span className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full bg-purple-600 text-white shadow-sm">
-                            {pendingUploads.length} pending
-                        </span>
-                    </div>
-                    <div className="divide-y divide-purple-100/50">
-                        {pendingUploads.map(upload => {
-                            const analysis = upload.ai_analysis as any
-                            return (
-                                <Link key={upload.id} href={`/upload/review/${upload.id}`} className="flex items-center justify-between px-5 py-3 hover:bg-purple-100/50 transition-colors group">
-                                    <div className="flex items-center gap-3 min-w-0">
-                                        <div className="h-10 w-10 rounded-lg bg-white border border-purple-100 shadow-sm flex items-center justify-center shrink-0 group-hover:border-purple-300 transition-colors">
-                                            <FileText className="h-5 w-5 text-purple-500" />
-                                        </div>
-                                        <div className="min-w-0">
-                                            <p className="font-semibold text-sm text-purple-950 truncate">{analysis?.title || 'Untitled Audio Format'}</p>
-                                            <div className="flex items-center gap-2 mt-0.5 text-xs text-purple-700/80">
-                                                <span>User: {(upload.users as any)?.full_name || (upload.users as any)?.email}</span>
-                                                <span>·</span>
-                                                <span>Submitted {timeAgo(upload.created_at)}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <span className="text-xs font-medium text-purple-600 bg-white border border-purple-200 px-3 py-1.5 rounded-md shadow-sm group-hover:bg-purple-600 group-hover:text-white transition-all whitespace-nowrap ml-4">
-                                        Review →
-                                    </span>
-                                </Link>
-                            )
-                        })}
-                    </div>
-                </div>
-            )}
+            {/* Empty space where pending approvals used to be (Moved to /requests) */}
 
             {/* Recent Tickets */}
             <div className="rounded-xl border bg-card">
@@ -181,10 +157,9 @@ export default async function AgentDashboardPage() {
             <div className="rounded-xl border bg-card p-5">
                 <h3 className="font-semibold text-sm mb-4">Quick Actions</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <QuickAction href="/upload" label="Upload Audio" icon={UploadCloud} desc="Transcribe & create ticket" />
-                    <QuickAction href="/tickets/new" label="New Ticket" icon={Plus} desc="Manual ticket creation" />
-                    <QuickAction href="/search" label="Search" icon={Search} desc="Find existing tickets" />
-                    <QuickAction href="/tickets" label="All Tickets" icon={List} desc="Browse & filter tickets" />
+                    {quickActions.map(action => (
+                        <QuickAction key={action.href} {...action} />
+                    ))}
                 </div>
             </div>
         </div>

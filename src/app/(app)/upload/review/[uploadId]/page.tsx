@@ -1,12 +1,15 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { AudioReviewPanel } from '@/components/AudioReviewPanel'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
+import { ReviewClientWrapper } from './ReviewClientWrapper'
 
 export const metadata = { title: 'Review User Upload — ValueMomentum' }
 
-export default async function ReviewUploadPage({ params }: { params: { uploadId: string } }) {
+export default async function ReviewUploadPage(props: { params: Promise<{ uploadId: string }> }) {
+    const params = await props.params
+
+    // Note: Can't use useRouter() in an async Server Component directly.
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) redirect('/login')
@@ -92,14 +95,7 @@ export default async function ReviewUploadPage({ params }: { params: { uploadId:
             </div>
 
             <div className="bg-card rounded-xl border p-6">
-                <AudioReviewPanel
-                    analysis={analysisResult}
-                    onDismiss={() => {
-                        // In a real app we might use a router.push here, but the panel handles
-                        // the "Create Ticket" action, overriding this. We can just rely on standard navigation 
-                        // from the AudioReviewPanel on completion.
-                    }}
-                />
+                <ReviewClientWrapper analysisResult={analysisResult} />
             </div>
         </div>
     )

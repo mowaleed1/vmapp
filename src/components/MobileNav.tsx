@@ -3,12 +3,13 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect } from 'react'
-import { X, LayoutDashboard, Ticket, Upload, Search, Settings } from 'lucide-react'
+import { X, LayoutDashboard, Ticket, Upload, Search, Settings, Activity } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
     { label: 'Dashboard', href: '/dashboard/agent', icon: LayoutDashboard },
     { label: 'Tickets', href: '/tickets', icon: Ticket },
+    { label: 'Requests', href: '/requests', icon: Activity },
     { label: 'Upload', href: '/upload', icon: Upload },
     { label: 'Search', href: '/search', icon: Search },
     { label: 'Settings', href: '/settings', icon: Settings },
@@ -50,8 +51,8 @@ export function MobileNav({ open, onClose, userRole = 'user' }: { open: boolean;
                             <span className="text-[#056BFC]">App</span>
                         </span>
                     </div>
-                    <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/10 transition-colors">
-                        <X className="h-5 w-5 text-white/70" />
+                    <button onClick={onClose} aria-label="Close menu" className="p-2 rounded-lg hover:bg-white/10 transition-colors">
+                        <X className="h-5 w-5 text-white/70" aria-hidden="true" />
                     </button>
                 </div>
 

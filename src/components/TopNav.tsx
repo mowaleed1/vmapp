@@ -1,8 +1,10 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Bell, LogOut, User, Settings, ChevronDown, Menu } from 'lucide-react'
+import { Bell, LogOut, User, Settings, ChevronDown, Menu, Ticket } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -37,6 +39,35 @@ export function TopNav({ pageTitle = 'Dashboard', userEmail, userFullName, userR
         router.refresh()
     }
 
+    const [recentTickets, setRecentTickets] = useState<any[]>([])
+
+    useEffect(() => {
+        if (userRole === 'user') return
+
+        const fetchTickets = async () => {
+            const supabase = createClient()
+            const { data } = await supabase
+                .from('tickets')
+                .select('id, title, created_at, ticket_number')
+                .order('created_at', { ascending: false })
+                .limit(3)
+            if (data) {
+                setRecentTickets(data)
+            }
+        }
+        fetchTickets()
+    }, [userRole])
+
+    function timeAgo(dateStr: string) {
+        const diff = Date.now() - new Date(dateStr).getTime()
+        const mins = Math.floor(diff / 60000)
+        if (mins < 1) return 'just now'
+        if (mins < 60) return `${mins}m ago`
+        const hours = Math.floor(mins / 60)
+        if (hours < 24) return `${hours}h ago`
+        return `${Math.floor(hours / 24)}d ago`
+    }
+
     return (
         <header className="h-16 px-4 lg:px-6 flex items-center justify-between border-b bg-background shrink-0">
             {/* Left side: mobile menu + page title */}
@@ -46,8 +77,9 @@ export function TopNav({ pageTitle = 'Dashboard', userEmail, userFullName, userR
                     size="icon"
                     onClick={onMobileMenuToggle}
                     className="lg:hidden"
+                    aria-label="Toggle mobile menu"
                 >
-                    <Menu className="h-5 w-5" />
+                    <Menu className="h-5 w-5" aria-hidden="true" />
                 </Button>
                 <h1 className="text-lg font-semibold">{pageTitle}</h1>
             </div>
@@ -58,46 +90,48 @@ export function TopNav({ pageTitle = 'Dashboard', userEmail, userFullName, userR
                 {userRole !== 'user' && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="relative outline-none">
-                                <Bell className="h-5 w-5 text-muted-foreground hover:text-foreground transition-colors" />
-                                <Badge className="absolute -top-0.5 -right-0.5 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-[#056BFC] text-white border-0 shadow-sm animate-in zoom-in">
-                                    3
-                                </Badge>
+                            <Button variant="ghost" size="icon" className="relative outline-none" aria-label="View notifications">
+                                <Bell className="h-5 w-5 text-muted-foreground hover:text-foreground transition-colors" aria-hidden="true" />
+                                {recentTickets.length > 0 && (
+                                    <Badge className="absolute -top-0.5 -right-0.5 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-[#056BFC] text-white border-0 shadow-sm animate-in zoom-in">
+                                        {recentTickets.length}
+                                    </Badge>
+                                )}
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-[320px] p-2">
                             <div className="flex items-center justify-between px-2 py-1.5 mb-1">
-                                <span className="font-semibold text-sm">Notifications</span>
-                                <Badge variant="secondary" className="text-[10px] bg-[#056BFC]/10 text-[#056BFC]">3 New</Badge>
+                                <span className="font-semibold text-sm">Recent Tickets</span>
+                                {recentTickets.length > 0 && (
+                                    <Badge variant="secondary" className="text-[10px] bg-[#056BFC]/10 text-[#056BFC]">{recentTickets.length} New</Badge>
+                                )}
                             </div>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="flex flex-col items-start gap-1 p-3 cursor-pointer rounded-lg m-1">
-                                <div className="flex items-center gap-2 w-full">
-                                    <div className="w-2 h-2 rounded-full bg-[#056BFC] shrink-0" />
-                                    <p className="text-sm font-medium leading-none">New ticket assigned</p>
-                                </div>
-                                <p className="text-xs text-muted-foreground ml-4 leading-relaxed">Ticket VM-A1B2C3 has been assigned to you for immediate review.</p>
-                                <p className="text-[10px] text-muted-foreground ml-4 mt-1 font-medium">2m ago</p>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="flex flex-col items-start gap-1 p-3 cursor-pointer rounded-lg m-1">
-                                <div className="flex items-center gap-2 w-full">
-                                    <div className="w-2 h-2 rounded-full bg-[#f59e0b] shrink-0" />
-                                    <p className="text-sm font-medium leading-none">SLA Warning</p>
-                                </div>
-                                <p className="text-xs text-muted-foreground ml-4 leading-relaxed">Ticket VM-X9Y8Z7 SLA resolution approaches in 1 hour.</p>
-                                <p className="text-[10px] text-muted-foreground ml-4 mt-1 font-medium">1h ago</p>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="flex flex-col items-start gap-1 p-3 cursor-pointer rounded-lg m-1">
-                                <div className="flex items-center gap-2 w-full">
-                                    <div className="w-2 h-2 rounded-full bg-[#10b981] shrink-0" />
-                                    <p className="text-sm font-medium leading-none">System updated</p>
-                                </div>
-                                <p className="text-xs text-muted-foreground ml-4 leading-relaxed">ValueMomentum workspace v1.0 deployed successfully.</p>
-                                <p className="text-[10px] text-muted-foreground ml-4 mt-1 font-medium">2h ago</p>
-                            </DropdownMenuItem>
+
+                            {recentTickets.length === 0 ? (
+                                <div className="p-4 text-center text-xs text-muted-foreground">No recent tickets</div>
+                            ) : (
+                                recentTickets.map(ticket => (
+                                    <DropdownMenuItem key={ticket.id} className="p-0 m-1 cursor-pointer rounded-lg overflow-hidden group">
+                                        <Link href={`/tickets/${ticket.id}`} className="flex flex-col items-start gap-1 p-3 w-full hover:bg-muted transition-colors">
+                                            <div className="flex items-center gap-2 w-full">
+                                                <div className="w-2 h-2 rounded-full bg-[#056BFC] shrink-0" />
+                                                <p className="text-sm font-medium leading-none truncate">{ticket.title}</p>
+                                            </div>
+                                            <p className="text-xs text-muted-foreground ml-4 leading-relaxed font-mono">
+                                                {ticket.ticket_number ?? `VM-${ticket.id.slice(0, 6).toUpperCase()}`}
+                                            </p>
+                                            <p className="text-[10px] text-muted-foreground ml-4 mt-1 font-medium">{timeAgo(ticket.created_at)}</p>
+                                        </Link>
+                                    </DropdownMenuItem>
+                                ))
+                            )}
+
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="justify-center text-xs text-[#056BFC] font-medium cursor-pointer p-2.5 rounded-lg m-1 hover:bg-[#056BFC]/5">
-                                Mark all as read
+                            <DropdownMenuItem asChild>
+                                <Link href="/search" className="justify-center text-xs text-[#056BFC] font-medium cursor-pointer p-2.5 rounded-lg m-1 hover:bg-[#056BFC]/5 w-full flex">
+                                    Search all tickets
+                                </Link>
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>

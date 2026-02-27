@@ -24,6 +24,26 @@ export async function POST(req: Request) {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+        // ---------------------------------------------------------
+        // Security Check: Users cannot create tickets via API
+        // ---------------------------------------------------------
+        const { data: profile } = await supabase
+            .from('users')
+            .select('role:roles(name)')
+            .eq('id', user.id)
+            .single()
+
+        const roleData = profile?.role as any
+        const roleName = Array.isArray(roleData) ? roleData[0]?.name : roleData?.name
+
+        if (roleName === 'user') {
+            return NextResponse.json(
+                { error: 'Forbidden. Users trace audio; they cannot create tickets directly.' },
+                { status: 403 }
+            )
+        }
+        // ---------------------------------------------------------
+
         // Check if this audio transcript mentions an existing ticket
         if (linked_ticket_number) {
             let matchedTicket = null

@@ -107,7 +107,7 @@ export default function NewTicketPage() {
                     </div>
 
                     {/* Priority + Category */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                             <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Priority</Label>
                             <Select value={form.priority} onValueChange={(v) => set('priority', v)} disabled={loading}>

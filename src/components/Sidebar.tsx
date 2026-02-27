@@ -14,6 +14,7 @@ import {
     ChevronRight,
     BarChart2,
     Trash2,
+    Activity,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -24,6 +25,7 @@ const navItems = [
     { label: 'Dashboard', href: '/dashboard/agent', icon: LayoutDashboard },
     { label: 'Analytics', href: '/dashboard/admin', icon: BarChart2, restrictTo: ['admin'] },
     { label: 'Tickets', href: '/tickets', icon: Ticket, restrictTo: ['admin', 'agent'] },
+    { label: 'Requests', href: '/requests', icon: Activity, restrictTo: ['admin', 'agent'] },
     { label: 'Upload', href: '/upload', icon: Upload }, // Everyone
     { label: 'Search', href: '/search', icon: Search, restrictTo: ['admin', 'agent'] },
     { label: 'Settings', href: '/settings', icon: Settings, restrictTo: ['admin', 'agent'] },
@@ -106,6 +108,7 @@ export function Sidebar({ userRole = 'user' }: { userRole?: string }) {
                         const NavItem = () => (
                             <Link
                                 href={targetHref}
+                                aria-label={collapsed ? item.label : undefined}
                                 className={cn(
                                     'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',
                                     collapsed ? 'justify-center' : '',
@@ -114,7 +117,7 @@ export function Sidebar({ userRole = 'user' }: { userRole?: string }) {
                                         : 'text-white/55 hover:text-white hover:bg-white/8'
                                 )}
                             >
-                                <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={isActive ? 2 : 1.75} />
+                                <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={isActive ? 2 : 1.75} aria-hidden="true" />
                                 {!collapsed && <span>{item.label}</span>}
                                 {isActive && !collapsed && (
                                     <span className="ml-auto w-1.5 h-1.5 rounded-full bg-white/60" />

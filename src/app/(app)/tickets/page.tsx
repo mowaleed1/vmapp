@@ -47,9 +47,15 @@ export default async function TicketsPage({
 
     const totalPages = Math.ceil((count ?? 0) / PAGE_SIZE)
 
-    const { count: openCount } = await supabase.from('tickets').select('*', { count: 'exact', head: true }).eq('status', 'open')
-    const { count: inProgressCount } = await supabase.from('tickets').select('*', { count: 'exact', head: true }).eq('status', 'in_progress')
-    const { count: resolvedCount } = await supabase.from('tickets').select('*', { count: 'exact', head: true }).eq('status', 'resolved')
+    const [
+        { count: openCount },
+        { count: inProgressCount },
+        { count: resolvedCount }
+    ] = await Promise.all([
+        supabase.from('tickets').select('*', { count: 'exact', head: true }).eq('status', 'open'),
+        supabase.from('tickets').select('*', { count: 'exact', head: true }).eq('status', 'in_progress'),
+        supabase.from('tickets').select('*', { count: 'exact', head: true }).eq('status', 'resolved')
+    ])
 
     function pageUrl(p: number) {
         const params = new URLSearchParams()
@@ -91,7 +97,7 @@ export default async function TicketsPage({
             </div>
 
             {/* Status summary bar */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <StatusSummaryCard href="/tickets?status=open" label="Open" count={openCount ?? 0} color="#056BFC" active={status === 'open'} />
                 <StatusSummaryCard href="/tickets?status=in_progress" label="In Progress" count={inProgressCount ?? 0} color="#f59e0b" active={status === 'in_progress'} />
                 <StatusSummaryCard href="/tickets?status=resolved" label="Resolved" count={resolvedCount ?? 0} color="#10b981" active={status === 'resolved'} />

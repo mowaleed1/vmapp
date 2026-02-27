@@ -452,7 +452,7 @@ export function UploadZone({ userId, batchId }: { userId: string; batchId: strin
                         ) : (
                             <>
                                 <UploadCloud className="mr-2 h-4 w-4" />
-                                Upload & Process {pendingCount > 0 ? `(${pendingCount})` : ''}
+                                Submit for Review {pendingCount > 0 ? `(${pendingCount})` : ''}
                             </>
                         )}
                     </Button>
