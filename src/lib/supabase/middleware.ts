@@ -35,8 +35,12 @@ export async function updateSession(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser()
 
+    // Allow admin bypass mode (cookie set by the bypass button on the login page)
+    const adminBypass = request.cookies.get('admin-bypass')?.value === 'true'
+
     if (
         !user &&
+        !adminBypass &&
         !request.nextUrl.pathname.startsWith('/login') &&
         !request.nextUrl.pathname.startsWith('/signup') &&
         !request.nextUrl.pathname.startsWith('/forgot-password') &&

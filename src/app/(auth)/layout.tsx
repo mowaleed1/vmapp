@@ -52,12 +52,9 @@ export default function AuthLayout({
 
                 {/* Hero text */}
                 <div className="relative z-10 space-y-3">
-                    <h1 className="text-5xl xl:text-6xl font-bold text-[#1a1a1a] leading-tight whitespace-nowrap">
-                        Let&apos;s insure the future.
+                    <h1 className="text-3xl xl:text-4xl font-bold text-[#056BFC] leading-tight">
+                        Let&apos;s insure together.
                     </h1>
-                    <h2 className="text-5xl xl:text-6xl font-bold text-[#056BFC] leading-tight">
-                        Together.
-                    </h2>
                     <p className="text-[#303030]/65 text-base xl:text-lg leading-relaxed max-w-sm pt-1">
                         Join ValueMomentum to help people, businesses, and societies thrive
                         by managing risk and overcoming loss.

@@ -44,6 +44,13 @@ export default function LoginPage() {
         }
     }
 
+    function handleAdminBypass() {
+        // Set a bypass cookie so middleware allows access without a real session
+        document.cookie = 'admin-bypass=true; path=/; max-age=3600; SameSite=Strict'
+        router.push('/dashboard/admin')
+        router.refresh()
+    }
+
     return (
         <div className="w-full max-w-md">
 
@@ -62,48 +69,50 @@ export default function LoginPage() {
                         </div>
                     )}
 
-                    <div className="space-y-1.5">
-                        <Label htmlFor="email" className="text-[#303030] font-medium">Email address</Label>
-                        <Input
-                            id="email"
-                            type="email"
-                            placeholder="you@valuemomentum.com"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                            autoComplete="email"
-                            disabled={loading}
-                            className="h-11 border-gray-200 focus:border-[#056BFC] focus:ring-[#056BFC]/20"
-                        />
-                    </div>
-
-                    <div className="space-y-1.5">
-                        <div className="flex items-center justify-between">
-                            <Label htmlFor="password" className="text-[#303030] font-medium">Password</Label>
-                            <Link href="/forgot-password" className="text-xs text-[#056BFC] hover:underline">
-                                Forgot password?
-                            </Link>
-                        </div>
-                        <div className="relative">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                            <Label htmlFor="email" className="text-[#303030] font-medium">Email address</Label>
                             <Input
-                                id="password"
-                                type={showPassword ? 'text' : 'password'}
-                                placeholder="••••••••"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
+                                id="email"
+                                type="email"
+                                placeholder="you@valuemomentum.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
                                 required
-                                autoComplete="current-password"
+                                autoComplete="email"
                                 disabled={loading}
-                                className="h-11 pr-10 border-gray-200 focus:border-[#056BFC] focus:ring-[#056BFC]/20"
+                                className="h-11 border-gray-200 focus:border-[#056BFC] focus:ring-[#056BFC]/20"
                             />
-                            <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                                tabIndex={-1}
-                            >
-                                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </button>
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="password" className="text-[#303030] font-medium">Password</Label>
+                                <Link href="/forgot-password" className="text-xs text-[#056BFC] hover:underline">
+                                    Forgot?
+                                </Link>
+                            </div>
+                            <div className="relative">
+                                <Input
+                                    id="password"
+                                    type={showPassword ? 'text' : 'password'}
+                                    placeholder="••••••••"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                    autoComplete="current-password"
+                                    disabled={loading}
+                                    className="h-11 pr-10 border-gray-200 focus:border-[#056BFC] focus:ring-[#056BFC]/20"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                    tabIndex={-1}
+                                >
+                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -117,6 +126,16 @@ export default function LoginPage() {
                         ) : (
                             'Sign in'
                         )}
+                    </Button>
+
+                    {/* Admin Bypass Button */}
+                    <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full h-11 mt-2 border-red-400 text-red-600 hover:bg-red-50 hover:border-red-500"
+                        onClick={handleAdminBypass}
+                    >
+                        Admin Bypass
                     </Button>
                 </form>
 
