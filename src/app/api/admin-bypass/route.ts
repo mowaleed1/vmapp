@@ -1,14 +1,13 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
-export async function GET() {
-    const response = NextResponse.redirect(
-        new URL('/dashboard/admin', process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000')
-    )
+export async function GET(request: NextRequest) {
+    const url = new URL('/dashboard/admin', request.url)
+    const response = NextResponse.redirect(url)
     response.cookies.set('admin-bypass', 'true', {
         path: '/',
-        maxAge: 3600,        // 1 hour
-        httpOnly: false,     // readable by client if needed
-        sameSite: 'lax',     // works with normal browser navigations
+        maxAge: 3600,
+        httpOnly: false,
+        sameSite: 'lax',
     })
     return response
 }
