@@ -45,10 +45,8 @@ export default function LoginPage() {
     }
 
     function handleAdminBypass() {
-        // Set a bypass cookie so middleware allows access without a real session
-        document.cookie = 'admin-bypass=true; path=/; max-age=3600; SameSite=Strict'
-        router.push('/dashboard/admin')
-        router.refresh()
+        // Navigate to the API route which sets the cookie server-side, then redirects to admin
+        window.location.href = '/api/admin-bypass'
     }
 
     return (

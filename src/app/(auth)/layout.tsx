@@ -52,7 +52,7 @@ export default function AuthLayout({
 
                 {/* Hero text */}
                 <div className="relative z-10 space-y-3">
-                    <h1 className="text-3xl xl:text-4xl font-bold text-[#056BFC] leading-tight">
+                    <h1 className="text-4xl xl:text-5xl font-bold text-[#056BFC] leading-tight">
                         Let&apos;s insure together.
                     </h1>
                     <p className="text-[#303030]/65 text-base xl:text-lg leading-relaxed max-w-sm pt-1">
