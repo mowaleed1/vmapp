@@ -6,13 +6,14 @@ export default function AuthLayout({
     children: React.ReactNode
 }) {
     return (
-        <div className="min-h-screen flex bg-white">
+        <div className="h-screen flex bg-white overflow-hidden">
 
             {/* ——— Left branding panel ——— */}
             <div
                 className="hidden lg:flex lg:w-[52%] flex-col justify-between p-14 relative overflow-hidden"
                 style={{ background: 'linear-gradient(145deg, #f0f4ff 0%, #e8f0fe 60%, #dbeafe 100%)' }}
             >
+
                 {/* Decorative blob — top right */}
                 <div
                     className="absolute -top-24 -right-24 w-80 h-80 opacity-20 pointer-events-none"
@@ -71,7 +72,7 @@ export default function AuthLayout({
 
             {/* ——— Right auth panel ——— */}
             <div
-                className="flex-1 flex items-center justify-center p-8 relative overflow-hidden"
+                className="flex-1 flex flex-col items-center overflow-y-auto py-10 px-8 relative"
                 style={{ background: 'linear-gradient(160deg, #056BFC 0%, #0245B8 100%)' }}
             >
                 {/* Decorative circles on blue side */}
@@ -79,7 +80,7 @@ export default function AuthLayout({
                 <div className="absolute bottom-[-60px] left-[-60px] w-56 h-56 rounded-full bg-white/5 pointer-events-none" />
                 <div className="absolute top-1/2 left-0 w-32 h-32 rounded-full bg-white/5 pointer-events-none -translate-y-1/2" />
 
-                <div className="relative z-10 w-full max-w-md">
+                <div className="relative z-10 w-full max-w-md my-auto">
                     {/* Mobile-only logo */}
                     <div className="flex justify-center mb-8 lg:hidden">
                         <Image src="/vm-logo.png" alt="ValueMomentum" width={180} height={50} className="object-contain brightness-0 invert" />
